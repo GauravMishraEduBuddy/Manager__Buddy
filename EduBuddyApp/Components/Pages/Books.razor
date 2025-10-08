@@ -1,0 +1,275 @@
+@page "/books"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@using Syncfusion.Blazor.Grids
+@using EduBuddyApp.Components.Common
+@using Radzen
+@inject IBooksChapterService BooksChapterService
+@inject UserState UserState
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<h3>Books</h3>
+
+<InputSelect class="form-select mb-3" @bind-Value="selectedSubjectId" @bind-Value:after="OnSubjectChanged">
+    <option value="">-- select --</option>
+    @foreach (var s in subjects)
+    {
+        <option value="@s.SubjectID">@s.ClassAndSectionName - @s.SubjectName</option>
+    }
+</InputSelect>
+
+@if (selectedSubjectId != 0)
+{
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary" @onclick="OpenAddBookDialog">Create Book</button>
+    </div>
+    if (books == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (books.Count == 0)
+    {
+        <p>No books for this subject.</p>
+    }
+    else
+    {
+        <SfGrid DataSource="@books" Width="100%" AllowSorting="true" AllowPaging="true" AllowTextWrap="true" EnableAdaptiveUI="true" RowRenderingMode="RowDirection.Vertical">
+            <GridColumns>
+                <GridColumn Field="BookTitle" HeaderText="Book" Width="200" />
+                 <GridColumn Field="BookPublisher" HeaderText="Publisher" Width="200" />
+                <GridColumn Field="ChapterNumbers" HeaderText="#Chapters" Width="100" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center" />
+                <GridColumn HeaderText="Actions" Width="150" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center">
+                    <Template>
+                        @{
+                            var book = context as BooksShortViewModel;
+                        }
+                        <button class="btn btn-warning btn-sm me-2" @onclick="(() => OpenEditBookDialog(book.BookID))">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="(() => DeleteBook(book.BookID))">Delete</button>
+                    </Template>
+                </GridColumn>
+            </GridColumns>
+            <GridTemplates>
+                <DetailTemplate>
+                    @{ var book = context as BooksShortViewModel; }
+                    <div class="mb-2">
+                        <button class="btn btn-primary btn-sm" @onclick="(() => OpenAddChapterDialog(book.BookID))">Create Chapter</button>
+                    </div>
+                    <div class="row row-cols-1 row-cols-md-3 g-3">
+                        @if (book?.Chapters != null)
+                        {
+                            @foreach (var chapter in book.Chapters)
+                            {
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Chapter @chapter.ChapterNumber: @chapter.ChapterTitle</h5>
+                                            <p class="card-text mb-1"><strong>Exercises:</strong> @chapter.ChapterExcercises</p>
+                                            <p class="card-text mb-1"><strong>Lectures:</strong> @chapter.ChapterAllottedLectures</p>
+                                            <p class="card-text mb-1"><strong>Difficulty:</strong> @chapter.DifficultyLevel</p>
+                                            <p class="card-text mb-1"><strong>Topics:</strong> @chapter.Topics</p>
+                                            <p class="card-text mb-1"><strong>Activity:</strong> @chapter.ChapterActivity</p>
+                                            <button class="btn btn-warning btn-sm me-2" @onclick="(() => OpenEditChapterDialog(book.BookID, chapter.ChapterID))">Edit</button>
+                                            <button class="btn btn-danger btn-sm" @onclick="(() => DeleteChapter(book, chapter.ChapterID))">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </DetailTemplate>
+            </GridTemplates>
+        </SfGrid>
+    }
+}
+
+@code {
+    private List<TeacherSubjectDto> subjects = new();
+    private int selectedSubjectId;
+    private List<BooksShortViewModel>? books;
+
+    protected override void OnInitialized()
+    {
+        subjects = UserState.EmployeeDetails?.TeacherSubjects?.ToList() ?? new List<TeacherSubjectDto>();
+    }
+
+    private async Task OnSubjectChanged()
+    {
+        books = null;
+        if (selectedSubjectId != 0)
+        {
+            books = await BooksChapterService.GetBooksBySubjectAsync(selectedSubjectId);
+            if (books != null)
+            {
+                foreach (var b in books)
+                {
+                    b.ChapterNumbers = b.Chapters?.Count;
+                    if (b.Chapters != null)
+                    {
+                        for (int i = 0; i < b.Chapters.Count; i++)
+                        {
+                            var full = await BooksChapterService.GetChapterAsync(b.Chapters[i].ChapterID);
+                            if (full != null)
+                            {
+                                b.Chapters[i] = full;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task OpenAddChapterDialog(int bookId)
+    {
+        var result = await DialogService.OpenAsync<ChapterEditForm>("Create Chapter",
+            new Dictionary<string, object> { { "BookId", bookId } },
+            new DialogOptions() { Width = "90%" });
+        if (result is ChaptersViewModel created)
+        {
+            var full = await BooksChapterService.GetChapterAsync(created.ChapterID);
+            var chapterToAdd = full ?? created;
+            var book = books?.FirstOrDefault(b => b.BookID == bookId);
+            if (book != null)
+            {
+                book.Chapters.Add(chapterToAdd);
+                book.ChapterNumbers = book.Chapters.Count;
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Chapter Added",
+                    Detail = "Chapter added successfully."
+                });
+            }
+        }
+    }
+
+    private async Task OpenEditChapterDialog(int bookId, int chapterId)
+    {
+        var result = await DialogService.OpenAsync<ChapterEditForm>("Edit Chapter",
+            new Dictionary<string, object> { { "BookId", bookId }, { "ChapterId", chapterId } },
+            new DialogOptions() { Width = "90%" });
+        if (result is ChaptersViewModel updated)
+        {
+            var full = await BooksChapterService.GetChapterAsync(updated.ChapterID);
+            var chapterToUse = full ?? updated;
+            var book = books?.FirstOrDefault(b => b.BookID == bookId);
+            if (book != null)
+            {
+                var idx = book.Chapters.FindIndex(c => c.ChapterID == chapterToUse.ChapterID);
+                if (idx >= 0)
+                {
+                    book.Chapters[idx] = chapterToUse;
+                    NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Success,
+                        Summary = "Chapter Updated",
+                        Detail = "Chapter updated successfully."
+                    });
+                }
+            }
+        }
+    }
+      private async Task OpenAddBookDialog()
+    {
+        var result = await DialogService.OpenAsync<BookEditForm>("Create Book",
+            new Dictionary<string, object> { { nameof(BookEditForm.SubjectId), selectedSubjectId } },
+            new DialogOptions() { Width = "50%" });
+        if (result is BooksShortViewModel created)
+        {
+            created.Chapters ??= new List<ChaptersViewModel>();
+            created.ChapterNumbers = created.Chapters.Count;
+            books?.Add(created);
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Success,
+                Summary = "Book Added",
+                Detail = "Book added successfully.",
+            });
+        }
+    }
+
+    private async Task OpenEditBookDialog(int bookId)
+    {
+        var result = await DialogService.OpenAsync<BookEditForm>("Edit Book",
+            new Dictionary<string, object> { { nameof(BookEditForm.SubjectId), selectedSubjectId }, { nameof(BookEditForm.BookId), bookId } },
+            new DialogOptions() { Width = "50%" });
+        if (result is BooksShortViewModel updated)
+        {
+            var book = books?.FirstOrDefault(b => b.BookID == updated.BookID);
+            if (book != null)
+            {
+                book.BookTitle = updated.BookTitle;
+                book.BookPublisher = updated.BookPublisher;
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Book Updated",
+                    Detail = "Book updated successfully.",
+                });
+            }
+        }
+    }
+
+    private async Task DeleteBook(int bookId)
+    {
+        var success = await BooksChapterService.DeleteBookAsync(bookId);
+        if (success)
+        {
+            var book = books?.FirstOrDefault(b => b.BookID == bookId);
+            if (book != null)
+            {
+                books.Remove(book);
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Book Deleted",
+                    Detail = "Book deleted successfully.",
+                });
+            }
+        }
+        else
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Delete Failed",
+                Detail = "Unable to delete book.",
+            });
+        }
+    }
+
+
+
+    private async Task DeleteChapter(BooksShortViewModel book, int chapterId)
+    {
+        var success = await BooksChapterService.DeleteChapterAsync(chapterId);
+        if (success)
+        {
+            var chapter = book.Chapters.FirstOrDefault(c => c.ChapterID == chapterId);
+            if (chapter != null)
+            {
+                book.Chapters.Remove(chapter);
+                book.ChapterNumbers = book.Chapters.Count;
+                StateHasChanged();
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Chapter Deleted",
+                    Detail = "Chapter deleted successfully."
+                });
+            }
+        }
+        else
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Delete Failed",
+                Detail = "Unable to delete chapter."
+            });
+        }
+    }
+}

@@ -1,0 +1,244 @@
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@using Syncfusion.Blazor.Grids
+@inject ICircularService CircularService
+@inject UserState UserState
+@inject IJSRuntime JSRuntime
+
+
+@if (circulars == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="d-flex justify-content-end mb-3">
+        <RadzenDropDown TValue="AudienceScope" 
+                      Data="audienceOptions" 
+                      TextProperty="Text" 
+                      ValueProperty="Value"
+                      @bind-Value="selectedAudienceScope"
+                      Change="@(async() => await LoadCirculars())"
+                      Style="width: 200px;"
+                      Placeholder="Filter audience..." />
+    </div>
+    
+    <SfGrid DataSource="@circulars"
+            AllowFiltering="true" AllowSorting="true" ShowColumnChooser="true"
+            AllowPaging="true" AllowResizing="true" Width="100%"
+            EnableAdaptiveUI="true" RowRenderingMode="RowDirection.Vertical"
+            Toolbar="@(new List<string>() { "Search", "ColumnChooser" })" AllowTextWrap="true"
+            class="table table-striped">
+        <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
+        <GridTemplates>
+            <DetailTemplate>
+                @{
+                    var item = context as Circular;
+                }
+                <RadzenCard class="circular-detail-card">
+                    <div class="circular-header">
+                        <RadzenIcon Icon="mail" Style="font-size:32px; color:#ffe082; margin-right:12px;" />
+                        <h4 class="circular-title">@item.Title</h4>
+                    </div>
+                    @if (!string.IsNullOrEmpty(item.Body))
+                    {
+                        <div class="circular-body">
+                            <RadzenIcon Icon="description" Style="font-size:20px; color:#ffe082; margin-right:8px;" />
+                            <span>@((MarkupString)item.Body)</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(item.AttachmentBlobName))
+                    {
+                        <div class="circular-attachment">
+                            <RadzenIcon Icon="attach_file" Style="font-size:20px; color:#ffe082; margin-right:8px;" />
+                            <strong>Attachment:</strong>
+                            <a href="javascript:void(0);" @onclick="() => OpenAttachment(item.AttachmentBlobName)" style="color:#ffe082; text-decoration:underline;">
+                                @item.AttachmentBlobName
+                            </a>
+                        </div>
+                    }
+                    <div class="circular-meta">
+                        <div>
+                            <RadzenIcon Icon="event" Style="font-size:18px; color:#ffe082; margin-right:6px;" />
+                            <span><strong>Published:</strong> <span class="meta-text">@item.PublishDate.ToString("MMM dd, yyyy")</span></span>
+                        </div>
+                        @if (item.ExpiryDate.HasValue)
+                        {
+                            <div>
+                                <RadzenIcon Icon="event_busy" Style="font-size:18px; color:#ffe082; margin-right:6px;" />
+                                <span><strong>Expires:</strong> <span class="meta-text">@item.ExpiryDate.Value.ToString("MMM dd, yyyy")</span></span>
+                            </div>
+                        }
+                        <div>
+                            <RadzenIcon Icon="group" Style="font-size:18px; color:#ffe082; margin-right:6px;" />
+                            <span><strong>Audience:</strong> <span class="meta-text">@item.AudienceScope.ToString()</span></span>
+                        </div>
+                    </div>
+                </RadzenCard>
+            </DetailTemplate>
+        </GridTemplates>
+        <GridColumns>
+            <GridColumn Field="Title" HeaderText="Title" Width="300px" />
+            <GridColumn Field="PublishDate" HeaderText="Published On" Width="150px" Format="d">
+                <Template>
+                    @{
+                        var circular = (context as Circular);
+                        @circular.PublishDate.ToString("MMM dd, yyyy")
+                    }
+                </Template>
+            </GridColumn>
+            <GridColumn Field="ExpiryDate" HeaderText="Expires On" Width="150px">
+                <Template>
+                    @{
+                        var circular = (context as Circular);
+                        @(circular.ExpiryDate.HasValue ? circular.ExpiryDate.Value.ToString("MMM dd, yyyy") : "-")
+                    }
+                </Template>
+            </GridColumn>
+            <GridColumn Field="AudienceScope" HeaderText="Audience" Width="120px" />
+            <GridColumn HeaderText="Attachment" Width="120px">
+                <Template>
+                    @{
+                        var circular = (context as Circular);
+                        @if (!string.IsNullOrEmpty(circular.AttachmentBlobName))
+                        {
+                            <a href="javascript:void(0);" @onclick="() => OpenAttachment(circular.AttachmentBlobName)" class="btn btn-sm btn-outline-primary">
+                                <i class="fa fa-file"></i> View
+                            </a>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    }
+                </Template>
+            </GridColumn>
+        </GridColumns>
+        <GridAggregates>
+            <GridAggregate>
+                <GridAggregateColumns>
+                    <GridAggregateColumn Field="Title" Type="AggregateType.Count">
+                        <FooterTemplate>
+                            @{ var data = context as AggregateTemplateContext; }
+                            Total Circulars: @(data?.Count ?? "0")
+                        </FooterTemplate>
+                    </GridAggregateColumn>
+                </GridAggregateColumns>
+            </GridAggregate>
+        </GridAggregates>
+    </SfGrid>
+}
+
+<style>
+    .circular-detail {
+        background-color: #f9f9f9;
+        border-radius: 8px;
+    }
+    
+    .circular-meta {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 1.5rem;
+    }
+</style>
+
+@code {
+    private List<Circular>? circulars;
+    private int schoolId;
+    private AudienceScope selectedAudienceScope = AudienceScope.All;
+    
+    private List<DropDownItem<AudienceScope>> audienceOptions = new List<DropDownItem<AudienceScope>>
+    {
+        new DropDownItem<AudienceScope> { Text = "All", Value = AudienceScope.All },
+        new DropDownItem<AudienceScope> { Text = "Parents Only", Value = AudienceScope.StaffOnly }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        schoolId = UserState.SchoolId ?? 0;
+        if (schoolId > 0)
+        {
+            await LoadCirculars();
+        }
+    }
+
+    private async Task LoadCirculars()
+    {
+        circulars = await CircularService.GetCircularsAsync(schoolId, selectedAudienceScope);
+    }
+    
+    private async Task OpenAttachment(string? blobName)
+    {
+        if (!string.IsNullOrEmpty(blobName))
+        {
+            // You might need to implement this method to get the actual URL
+            // This is a placeholder - adjust based on your actual attachment handling
+            string attachmentUrl = $"api/Circular/attachment/{schoolId}/{blobName}";
+            await JSRuntime.InvokeVoidAsync("open", attachmentUrl, "_blank");
+        }
+    }
+    
+    private class DropDownItem<T>
+    {
+        public string Text { get; set; } = "";
+        public T Value { get; set; } = default!;
+    }
+}
+
+<style>
+    .circular-detail-card {
+        background: #004d40 !important;
+        color: #fffde7 !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        padding: 24px;
+        margin: 8px 0;
+    }
+
+    .circular-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .circular-title {
+        color: #fffde7;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .circular-body {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 14px;
+        color: #fffde7;
+        font-size: 1.1rem;
+    }
+
+    .circular-attachment {
+        display: flex;
+        align-items: center;
+        margin-bottom: 14px;
+        color: #ffe082;
+        font-size: 1rem;
+    }
+
+    .circular-meta {
+        margin-top: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .meta-text {
+        color: #ffe082;
+        font-weight: 500;
+    }
+
+    a {
+        color: #ffe082;
+    }
+</style>

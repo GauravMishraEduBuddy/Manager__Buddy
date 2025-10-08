@@ -1,0 +1,159 @@
+﻿@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject IExamMarksService ExamMarksService
+
+@if (!hasOpenExam)
+{
+    <p><em>No open exam available for mark entry.</em></p>
+}
+else if (studentMarks == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (studentMarks.Count == 0)
+{
+    <p><em>No marks available.</em></p>
+}
+else if (ReportCardStatushere != ReportCardStatus.WithMarks && ReportCardStatushere != ReportCardStatus.WithGrades)
+{
+    <p><em>This subject is not included in the report card.</em></p>
+}
+else
+{
+    <EditForm OnValidSubmit="SaveMarks">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    @if (ReportCardStatushere == ReportCardStatus.WithMarks)
+                    {
+                        <th>Mark</th>
+                    }
+                    else if (ReportCardStatushere == ReportCardStatus.WithGrades)
+                    {
+                        <th>Grade</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                 <!-- 
+              foreach (var stu in studentMarks)
+{
+    <tr>
+        <td>@stu.StudentName</td>
+       
+        if (ReportCardStatushere == ReportCardStatus.WithMarks)
+        {
+            
+                var id = stu.StudentId;   /* ← stable closure */
+            
+            <td>
+                <InputNumber TValue="decimal?"
+                             Value="@(marks.GetValueOrDefault(id))"
+                             ValueChanged="@(v => marks[id] = v)"
+                             ValueExpression="@(() => marks[id])"
+                             class="form-control" />
+            </td>
+        }
+        else if (ReportCardStatushere == ReportCardStatus.WithGrades)
+        {
+            
+                var id = stu.StudentId;
+            
+            <td>
+                <InputText  Value="@(grades.GetValueOrDefault(id))"
+                            ValueChanged="@(v => grades[id] = v)"
+                            ValueExpression="@(() => grades[id])"
+                            class="form-control" />
+            </td>
+        }
+                       
+    </tr>
+}
+                 -->
+     </tbody>
+        </table>
+        <div class="d-grid gap-2 mb-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-info">@message</div>
+    }
+}
+
+@code {
+    [Parameter] public int SectionId { get; set; }
+    [Parameter] public int SchoolId { get; set; }
+    [Parameter] public int SubjectId { get; set; }
+    [Parameter] public ReportCardStatus? ReportCardStatushere { get; set; }
+
+    private List<StudentSubjectExamMarksDto>? studentMarks;
+    private Dictionary<int, decimal?> marks = new();
+    private Dictionary<int, string?> grades = new();
+    private int openExamId;
+    private bool hasOpenExam;
+    private string? message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = null;
+        hasOpenExam = false;
+        studentMarks = null;
+        marks.Clear();
+        grades.Clear();
+
+        if (SchoolId <= 0 || SectionId <= 0 || SubjectId <= 0)
+        {
+            return;
+        }
+
+        openExamId = await ExamMarksService.GetOpenExamIdAsync(SchoolId);
+        if (openExamId == 0)
+        {
+            return;
+        }
+        hasOpenExam = true;
+        studentMarks = await ExamMarksService.GetStudentSubjectExamMarksExamOpenAsync(SectionId, SchoolId, SubjectId);
+        foreach (var stu in studentMarks)
+        {
+            var entry = stu.MarksByExam.FirstOrDefault();
+            marks[stu.StudentId] = stu.MarksByExam.FirstOrDefault()?.NumericMark ?? null;
+           grades[stu.StudentId] = stu.MarksByExam.FirstOrDefault()?.LetterGrade ?? null;
+        }
+    }
+
+    private async Task SaveMarks()
+    {
+        if (studentMarks == null || studentMarks.Count == 0)
+        {
+            return;
+        }
+
+        var updates = new List<ExamMarkUpdateDto>();
+        foreach (var stu in studentMarks)
+        {
+            updates.Add(new ExamMarkUpdateDto
+            {
+                StudentId = stu.StudentId,
+                SubjectId = SubjectId,
+                ExamId = openExamId,
+                NumericMark = ReportCardStatushere == ReportCardStatus.WithMarks ? marks.GetValueOrDefault(stu.StudentId) : null,
+                LetterGrade = ReportCardStatushere == ReportCardStatus.WithGrades ? grades.GetValueOrDefault(stu.StudentId) : null,
+                MaxMarks = 0
+            });
+        }
+
+        try
+        {
+            await ExamMarksService.UpdateExamMarksAsync(updates);
+            message = "Marks updated successfully.";
+        }
+        catch (Exception ex)
+        {
+            message = $"Error updating marks: {ex.Message}";
+        }
+    }
+}
+

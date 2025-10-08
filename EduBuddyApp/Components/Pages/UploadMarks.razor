@@ -1,0 +1,48 @@
+@page "/uploadmarks"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject UserState UserState
+@using EduBuddyApp.Components.Common
+@using System.Linq
+
+<h3>Upload Marks</h3>
+
+<InputSelect class="form-select mb-3"
+             @bind-Value="selectedSubjectId"
+             @bind-Value:after="OnSubjectChanged">
+    <option value="">-- select subject --</option>
+    @foreach (var s in subjects)
+    {
+        <option value="@s.SubjectID">@s.ClassSectionAndSubjectName</option>
+    }
+</InputSelect>
+
+@if (selectedSubject != null)
+{
+    <SubjectShortCard Subject="selectedSubject" />
+    <SubjectOpenExamMarksGrid SectionId="@selectedSubject.SectionId"
+                               SchoolId="@schoolId"
+                               SubjectId="@selectedSubject.SubjectID"
+                              ReportCardStatushere="@selectedSubject.ReportCardStatus" />
+}
+
+@code {
+    private List<TeacherSubjectDto> subjects = new();
+    private int? selectedSubjectId;
+    private TeacherSubjectDto? selectedSubject;
+    private int schoolId;
+
+    protected override void OnInitialized()
+    {
+        subjects = UserState.EmployeeDetails?.TeacherSubjects?.ToList() ?? new List<TeacherSubjectDto>();
+        schoolId = UserState.SchoolId ?? 0;
+    }
+
+    private void OnSubjectChanged()
+    {
+        selectedSubject = subjects.FirstOrDefault(s => s.SubjectID == selectedSubjectId);
+        StateHasChanged();
+    }
+}

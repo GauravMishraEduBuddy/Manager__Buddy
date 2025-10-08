@@ -1,0 +1,128 @@
+@page "/"
+@layout Layout.NoNavLayout
+@inject DialogService DialogService
+@using EduBuddyApp.Components.Common
+@inject NavigationManager NavigationManager
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    .welcome-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+        min-height: 100vh;
+         background-image: url('https://edubuddydata.blob.core.windows.net/project-images/BackgroundForStuBuddy.png');  
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: white;
+    }
+
+    .welcome-image {
+        max-width: 90%;
+        height: auto;
+        margin-bottom: 1.2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .welcome-heading {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+    }
+
+    .welcome-punchline {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        animation: slideIn 2s ease-out forwards;
+        opacity: 0;
+        color: navy; /* Text color */
+        font-weight: bold; /* Bold text */
+        font-family: 'Calistoga', cursive; /* Calistoga font */
+    }
+
+
+    .welcome-description {
+        font-size: 0.8rem;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        font-weight: bold;
+        margin-bottom: 1.2rem;
+        max-width: 500px;
+    }
+
+    .btn-primary {
+        font-size: 1rem;
+        padding: 0.6rem 1.4rem;
+        border-radius: 6px;
+    }
+
+    @@keyframes slideIn {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="welcome-container">
+    <img src="https://edubuddydata.blob.core.windows.net/project-images/TeacherBuddy.png"
+         alt="Student Buddy" class="welcome-image" />
+
+    <h1 class="welcome-heading">📲 TeacherBuddy – Powered by EduBuddy</h1>
+
+    <div class="welcome-punchline">
+        Your personal school assistant!
+    </div>
+
+    <p class="welcome-description">
+        Simplify your teaching day—mark attendance, plan lessons, track student progress, and share homework with just a few taps. TeacherBuddy puts everything you need in one easy-to-use app, so you can focus more on inspiring your students.
+    </p>
+
+    <button class="btn btn-primary" @onclick="OpenLoginPopup">
+        Login
+    </button>
+</div>
+
+
+@code {
+     private async Task OpenLoginPopup()
+    {
+        await DialogService.OpenAsync<LoginForm>("Login", new Dictionary<string, object>
+        {
+            { "OnLoginComplete", EventCallback.Factory.Create<bool>(this, HandleLoginComplete) }
+        });
+    }
+
+     private void HandleLoginComplete(bool success)
+    {
+        // You can handle post-login logic here if needed
+        if (success)
+        {
+            // User successfully logged in
+            //NavigationManager to @page "/mypage"
+            NavigationManager.NavigateTo("/home");
+            StateHasChanged();
+        }
+    }
+}

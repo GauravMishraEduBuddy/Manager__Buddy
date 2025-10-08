@@ -1,0 +1,92 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using EduBuddyApp.Services
+@inject Services.IAuthService AuthService
+@inject NavigationManager Nav
+@inject UserState UserState
+
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Teacher Buddy</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable sidebar-menu" onclick="document.querySelector('.navbar-toggler').click()">
+    <RadzenPanelMenu Style="width: 100%">
+        <RadzenPanelMenuItem Text="Home" Icon="home" Path="/home" />
+        
+        @if (IsFeatureEnabled("AI"))
+        {
+            <RadzenPanelMenuItem Text="AITool" Icon="smart_toy" Path="teacherbuddy" />
+        }
+        
+        @if (IsFeatureEnabled("LMS-Basic") || IsFeatureEnabled("LMS-Full"))
+        {
+            <RadzenPanelMenuItem Text="Academics" Icon="school" Path="academics">
+                <RadzenPanelMenuItem Text="My Time Table" Icon="schedule" Path="mytimetable" />
+                <RadzenPanelMenuItem Text="My Section" Icon="group" Path="mysection" />
+                @* Only show if LMS-Full is enabled *@
+                @if (IsFeatureEnabled("LMS-Full"))
+                {
+                    <RadzenPanelMenuItem Text="Syllabus" Icon="menu_book" Path="syllabus" />
+                    <RadzenPanelMenuItem Text="Period Entry" Icon="event" Path="periodentry" />
+                    <RadzenPanelMenuItem Text="Upload Marks" Icon="cloud_upload" Path="uploadmarks" />
+                    <RadzenPanelMenuItem Text="Books" Icon="library_books" Path="books" />
+                }
+                <RadzenPanelMenuItem Text="My Section Marks" Icon="grading" Path="mysectionmarks" />
+                <RadzenPanelMenuItem Text="My Subject Marks" Icon="grading" Path="mysubjectmarks" />
+                <RadzenPanelMenuItem Text="Notebook Corrections" Icon="check_circle" Path="notebookcorrections" Style="pointer-events: none; opacity: 0.5;" />
+            </RadzenPanelMenuItem>
+        }
+        
+        <RadzenPanelMenuItem Text="Non-Academics" Icon="emoji_events" Path="nonacademics">
+            <RadzenPanelMenuItem Text="Attendance" Icon="assignment" Path="attendance" Style="pointer-events: none; opacity: 0.5;" />
+
+            @if (UserState.IsCollege != true)
+            {
+                <RadzenPanelMenuItem Text="ClassTeacher Attendance" Icon="assignment_turned_in" Path="sectionattendance" />
+            }
+           
+            <RadzenPanelMenuItem Text="Student Calling" Icon="call" Path="studentcalling" Style="pointer-events: none; opacity: 0.5;" />
+            <RadzenPanelMenuItem Text="Diary" Icon="book" Path="diary" Style="pointer-events: none; opacity: 0.5;" />
+            <RadzenPanelMenuItem Text="Circulars" Icon="announcement" Path="circulars"  />
+            <RadzenPanelMenuItem Text="Event Calendar" Path="events" Icon="calendar_today" />
+            <RadzenPanelMenuItem Text="Notification" Icon="notifications" Path="notification" Style="pointer-events: none; opacity: 0.5;" />
+            <RadzenPanelMenuItem Text="Holiday List" Icon="calendar_today" Path="holidaylist" />
+            <RadzenPanelMenuItem Text="PTM List" Icon="people" Path="ptmlist" Style="pointer-events: none; opacity: 0.5;" />
+        </RadzenPanelMenuItem>
+        <RadzenPanelMenuItem Text="My Page" Icon="person" Path="mypage" />
+        <RadzenPanelMenuItem Text="My School" Icon="domain" Path="myschool" />
+    </RadzenPanelMenu>
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-item px-3">
+                <a @onclick="DoLogout" style="cursor:pointer">Logout</a>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="nav-item px-3">
+                <NavLink href="login">Login</NavLink>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private bool IsFeatureEnabled(string facilityName)
+    {
+        return UserState.FacilityStatuses
+            .FirstOrDefault(f => f.FacilityName == facilityName)?.IsEnabled ?? false;
+    }
+
+    async Task DoLogout()
+    {
+        await AuthService.LogoutAsync();
+        UserState.EmployeeId = null;
+        UserState.FacilityStatuses.Clear();
+        Nav.NavigateTo("", true);
+    }
+}

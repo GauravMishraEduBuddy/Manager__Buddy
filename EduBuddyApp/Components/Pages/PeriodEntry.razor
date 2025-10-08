@@ -1,0 +1,58 @@
+@page "/periodentry"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject UserState UserState
+@using EduBuddyApp.Components.Common
+@inject NavigationManager NavigationManager 
+
+<h3>Period Entry</h3>
+
+<InputSelect class="form-select mb-3"
+             @bind-Value="selectedSubjectId"
+             @bind-Value:after="OnSubjectChanged">
+    <option value="">-- select --</option>
+    @foreach (var s in subjects)
+    {
+        <option value="@s.SubjectID">@s.ClassAndSectionName - @s.SubjectName</option>
+    }
+</InputSelect>
+
+@if (selectedSubjectId.HasValue)
+{
+    @if (SubjectHere != null)
+{
+    <EduBuddyApp.Components.Common.SubjectShortCard Subject="SubjectHere" />
+}
+
+    <div class="d-flex justify-content-end mb-2">
+      <button type="button"
+        class="btn btn-primary"
+        @onclick='() => NavigationManager.NavigateTo($"/createperiodentry/{selectedSubjectId.Value}")'>
+    Create New Period Entry
+</button>
+
+    </div>
+    <SubjectPeriodEntryGrid SubjectId="@selectedSubjectId.Value" />
+}
+
+@code {
+    private List<TeacherSubjectDto> subjects = new();
+    private int? selectedSubjectId;
+    TeacherSubjectDto SubjectHere;
+
+    protected override void OnInitialized()
+    {
+        // Get subjects from UserState
+        subjects = UserState.EmployeeDetails?.TeacherSubjects?.ToList() ?? new List<TeacherSubjectDto>();
+    }
+
+    private void OnSubjectChanged()
+    {
+         SubjectHere = UserState.EmployeeDetails.TeacherSubjects.Where(s => s.SubjectID == selectedSubjectId.Value).FirstOrDefault();
+       
+        // Optionally handle logic when subject changes
+        StateHasChanged();
+    }
+}

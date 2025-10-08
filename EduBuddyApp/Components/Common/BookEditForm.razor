@@ -1,0 +1,59 @@
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject IBooksChapterService BooksChapterService
+@inject DialogService DialogService
+
+<EditForm Model="dto" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label class="form-label">Book Title</label>
+        <InputText class="form-control" @bind-Value="dto.BookTitle" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Publisher</label>
+        <InputText class="form-control" @bind-Value="dto.NewPublisher" />
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => DialogService.Close()">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int SubjectId { get; set; }
+    [Parameter] public int? BookId { get; set; }
+
+    private BookCreateDto dto = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        dto.SubjectId = SubjectId;
+        if (BookId.HasValue)
+        {
+            var book = await BooksChapterService.GetBookAsync(BookId.Value);
+            if (book != null)
+            {
+                dto.BookTitle = book.BookTitle;
+                dto.NewPublisher = book.BookPublisher;
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        BooksShortViewModel? result;
+        if (BookId.HasValue)
+        {
+            var updateDto = new BookUpdateDto { NewTitle = dto.BookTitle, NewPublisher = dto.NewPublisher, SubjectId = SubjectId };
+            result = await BooksChapterService.UpdateBookAsync(BookId.Value, updateDto);
+        }
+        else
+        {
+            result = await BooksChapterService.CreateBookAsync(dto);
+        }
+        if (result != null)
+        {
+            DialogService.Close(result);
+        }
+    }
+}

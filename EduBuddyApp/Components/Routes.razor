@@ -1,0 +1,31 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@using EduBuddyApp.Components.Layout
+
+
+<Router AppAssembly="@typeof(MauiProgram).Assembly">
+
+    <Found Context="routeData">
+        <!-- just switch to AuthorizeRouteView -->
+        <AuthorizeRouteView RouteData="@routeData"
+                            DefaultLayout="@typeof(Layout.MainLayout)" >
+                            <NotAuthorized>
++               <p class="m-4">
++                   You must 
++                   <NavLink href="login">log in</NavLink> 
++                   to view this page.
++               </p>
++           </NotAuthorized>
+        </AuthorizeRouteView>
+
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <p class="m-4">Sorry, page not found.</p>
+        </LayoutView>
+    </NotFound>
+
+</Router>
+

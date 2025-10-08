@@ -1,0 +1,29 @@
+@page "/circulars"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Components.Common
+
+<div class="page-container">
+    <h3 class="page-title">School Circulars</h3>
+    <div class="page-content">
+        <CircularList />
+    </div>
+</div>
+
+<style>
+    .page-container {
+        padding: 1rem;
+    }
+
+    .page-title {
+        margin-bottom: 1.5rem;
+        color: #d81b60;
+    }
+
+    .page-content {
+        background-color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+</style>

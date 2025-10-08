@@ -1,0 +1,90 @@
+@page "/periodattendance/{PeriodEntryId:int}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Components.Forms
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject IPeriodEntryService PeriodEntryService
+@inject NavigationManager NavigationManager
+
+<h3>Period Attendance</h3>
+
+@if (attendanceList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="attendanceList" OnValidSubmit="UpdateAttendance">
+        <button type="button" class="btn btn-success" @onclick="() => MarkAll(true)" disabled="@IsSaving">Mark All as Present</button>
+        <button type="button" class="btn btn-warning" @onclick="() => MarkAll(false)" disabled="@IsSaving">Mark All as Absent</button>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Present</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pa in attendanceList)
+                {
+                    <tr>
+                        <td>@pa.StudentName</td>
+                        <td><InputCheckbox @bind-Value="pa.IsPresent" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <div class="alert alert-info mt-3">@Message</div>
+        }
+        <p>
+            <button type="submit" class="btn btn-primary" disabled="@IsSaving">Update Attendance</button>
+            <button type="button" class="btn btn-dark" @onclick="@(() => NavigationManager.NavigateTo("/periodentry"))" disabled="@IsSaving">Cancel</button>
+        </p>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int PeriodEntryId { get; set; }
+
+    private List<PeriodAttendanceViewModel>? attendanceList;
+    private bool IsSaving;
+    private string? Message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        attendanceList = await PeriodEntryService.GetPeriodAttendanceAsync(PeriodEntryId);
+    }
+
+    private void MarkAll(bool present)
+    {
+        if (attendanceList == null) return;
+        foreach (var a in attendanceList)
+        {
+            a.IsPresent = present;
+        }
+    }
+
+    private async Task UpdateAttendance()
+    {
+        if (attendanceList == null) return;
+        IsSaving = true;
+        bool allSuccess = true;
+        foreach (var a in attendanceList)
+        {
+            var dto = new PeriodAttendanceUpdateDto
+            {
+                StudentId = a.StudentId,
+                PeriodEntryId = a.PeriodEntryId,
+                IsPresent = a.IsPresent
+            };
+            bool success = await PeriodEntryService.UpdatePeriodAttendanceAsync(dto);
+            if (!success) allSuccess = false;
+        }
+        Message = allSuccess ? "Attendance updated successfully" : "Failed to update some records";
+        IsSaving = false;
+    }
+}

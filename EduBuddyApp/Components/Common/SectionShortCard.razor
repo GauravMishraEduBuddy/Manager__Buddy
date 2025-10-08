@@ -1,0 +1,59 @@
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject ISectionService SectionService
+@inject UserState UserState
+@using Microsoft.AspNetCore.Components
+
+@if (sectionhere != null)
+{
+    <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px; background-color: #013220; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid #0f3d0f; border-radius: 8px;">
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.Start" Gap="1rem" class="rz-p-4">
+            <RadzenStack Gap="0">
+                <RadzenText TextStyle="TextStyle.H6" Style="color: #ffeb3b; margin-bottom: 10px;">
+                    Selected Section @sectionhere.ClassName - @sectionhere.SectionName
+                </RadzenText>
+            </RadzenStack>
+        </RadzenStack>
+
+        <RadzenCard class="rz-p-4" Style="background-color: transparent; box-shadow: none; margin: 0 1rem;">
+            <RadzenRow RowGap="0">
+                <RadzenColumn SizeSM="12">
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #ffffff;">Academic Session</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Style="color: #ffffff;"><b>@sectionhere.AcademicSession</b></RadzenText>
+                </RadzenColumn>
+            </RadzenRow>
+            <RadzenRow RowGap="0" class="rz-mt-4">
+                <RadzenColumn SizeSM="6">
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #ffffff;">Class Teacher</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Style="color: #ffffff;">
+                        <a href="@($"/employees/EmployeeSubjects?employeeid={sectionhere.TeacherId}")" style="color: #ffeb3b; text-decoration: none;">
+                            @sectionhere.EmployeeName
+                        </a>
+                    </RadzenText>
+                </RadzenColumn>
+                <RadzenColumn SizeSM="6">
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #ffffff;">Number of Students</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Style="color: #ffffff;"><b>@sectionhere.NoofStudents</b></RadzenText>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+    </RadzenCard>
+}
+else
+{
+    <p>Loading...</p>
+}
+
+@code {
+    [Parameter]
+    public int? SectionId { get; set; }
+
+    private SectionViewModel? sectionhere;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        int sectionId = SectionId ?? UserState.EmployeeDetails?.ClassTeacherSchoolClassId ?? 0;
+
+        sectionhere = await SectionService.GetSectionAsync(sectionId);
+    }
+}

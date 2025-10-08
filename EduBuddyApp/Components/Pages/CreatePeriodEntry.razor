@@ -1,0 +1,199 @@
+@page "/createperiodentry/{SubjectId:int}"
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject UserState UserState
+@inject ISubjectService SubjectService
+@inject ISyllabusService SyllabusService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <h3 class="mb-3">Create Period Entry</h3>
+
+    <!-- show SubjectshortCard -->
+    @if (SubjectHere != null)
+    {
+        <EduBuddyApp.Components.Common.SubjectShortCard Subject="SubjectHere" />
+    }
+
+    <EditForm Model="periodEntry" OnValidSubmit="AddPeriodEntry">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        
+        <div class="mb-3">
+            <label for="periodtypeid" class="form-label">Period Type:</label>                 
+            <InputSelect id="periodtypeid" @bind-Value="periodEntry.PeriodTypeId" class="form-select">
+                <option value="">Select Period Type...</option>
+                @foreach (var periodType in periodTypes)
+                {
+                    <option value="@periodType.PeriodTypeId">@periodType.PeriodTypeName</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => periodEntry.PeriodTypeId" class="text-danger" /> 
+        </div>
+        
+        <div class="mb-3">
+            <label for="lecturedate" class="form-label">Lecture Date:</label> 
+            <InputDate id="lecturedate" @bind-Value="periodEntry.LectureDate" class="form-control" /> 
+            <ValidationMessage For="() => periodEntry.LectureDate" class="text-danger" /> 
+        </div>
+        
+        <div class="mb-3">
+            <label for="lectureperiod" class="form-label">Lecture Period:</label> 
+            <InputNumber id="lectureperiod" @bind-Value="periodEntry.LecturePeriod" class="form-control" /> 
+            <ValidationMessage For="() => periodEntry.LecturePeriod" class="text-danger" /> 
+        </div>
+        
+        <div class="mb-3">
+            <label for="chapterid" class="form-label">Chapter:</label>
+            <InputSelect id="chapterid" @bind-Value="periodEntry.ChapterId" class="form-select">
+                <option value="">Select Chapter...</option>
+                @foreach (var chapter in chapters)
+                {
+                    <option value="@chapter.ChapterID">@chapter.ChapterNumber - @chapter.ChapterTitle</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => periodEntry.ChapterId" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="details" class="form-label">Details:</label> 
+            <div class="alert alert-success small p-2"> 
+                <i class="oi oi-lightbulb me-2"></i>Enter details about what was covered in this period (15-1000 characters)
+            </div>
+            <InputTextArea id="details" @bind-Value="periodEntry.Details" class="form-control" rows="5" /> 
+            <ValidationMessage For="() => periodEntry.Details" class="text-danger" />
+        </div>
+        
+        @if (!string.IsNullOrEmpty(createMessage))
+        {
+            <div class="alert @(createMessage.StartsWith("Error") ? "alert-danger" : "alert-info")" role="alert">
+                @createMessage
+            </div>
+        }
+   
+        <div class="d-grid gap-2 mb-3">
+            <button type="submit" class="btn btn-primary">Create Period Entry</button>
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    @onclick='() => NavigationManager.NavigateTo("/periodentry")'>
+                Cancel
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int SubjectId { get; set; }
+
+    TeacherSubjectDto SubjectHere;
+
+    private PeriodEntryCreateDto periodEntry = new()
+    {
+        LectureDate = DateTime.Today,
+        LectureSlot = 1
+    };
+
+    private List<PeriodTypeViewModel> periodTypes = new();
+    private List<ChaptersViewModel> chapters = new();
+    private string? createMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SubjectHere = UserState.EmployeeDetails?.TeacherSubjects?.Where(s => s.SubjectID == SubjectId).FirstOrDefault();
+        
+        // Initialize data from services
+        try
+        {
+            // Get period types from service
+            periodTypes = await SyllabusService.GetPeriodTypesAsync(UserState.SchoolId ?? 0);
+            
+            // Get chapters for this subject
+            chapters = await SyllabusService.GetChaptersForSubjectAsync(SubjectId);           
+           
+            // Set employee ID from UserState
+            if (UserState.EmployeeId.HasValue)
+            {
+                periodEntry.EmployeeId = UserState.EmployeeId.Value;
+            }
+            
+            // Set subject ID
+            periodEntry.SubjectId = SubjectId;
+        }
+        catch (Exception ex)
+        {
+            createMessage = $"Error loading data: {ex.Message}";
+        }
+    }
+
+    private async Task AddPeriodEntry()
+    {
+        createMessage = null;
+        
+        // Validate data
+        if (periodEntry.LecturePeriod <= 0)
+        {
+            createMessage = "Error: Lecture Period is required!";
+            return;
+        }
+
+        try
+        {
+            // Check if period entry exists for this employee, date and period
+            bool employeePeriodExists = await SubjectService.CheckEmployeePeriodExistsAsync(
+                periodEntry.EmployeeId, 
+                periodEntry.LectureDate, 
+                periodEntry.LecturePeriod);
+                
+            if (employeePeriodExists)
+            {
+                createMessage = "Information: Period entry already exists for you in this date & period!";
+                // Continue anyway - match web behavior
+            }
+            
+            // Check if period entry exists for this subject, date, period and slot
+            bool subjectPeriodExists = await SubjectService.CheckSubjectPeriodExistsAsync(
+                periodEntry.SubjectId ?? 0, 
+                periodEntry.LectureDate, 
+                periodEntry.LecturePeriod,
+                periodEntry.LectureSlot ?? 1);
+                
+            if (subjectPeriodExists)
+            {
+                // Find next available slot
+                int nextSlot = await SubjectService.FindNextAvailableSlotAsync(
+                    periodEntry.SubjectId ?? 0,
+                    periodEntry.LectureDate,
+                    periodEntry.LecturePeriod);
+                    
+                if (nextSlot <= 0)
+                {
+                    createMessage = "Error: No available slots for this subject in this date and period!";
+                    return;
+                }
+                
+                periodEntry.LectureSlot = nextSlot;
+                createMessage = $"Information: As period entry already existed for this subject in this date & period, the lecture slot is changed to {nextSlot}";
+            }
+
+            // Save period entry
+            string result = await SubjectService.CreatePeriodEntryAsync(periodEntry);
+            
+            if (!result.StartsWith("Error"))
+            {
+                createMessage = "Information: Period entry created successfully!";
+                // Navigate to period entries list after short delay
+                await Task.Delay(1500);
+                NavigationManager.NavigateTo($"/periodentry?subjectId={SubjectId}");
+            }
+            else
+            {
+                createMessage = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            createMessage = $"Error: {ex.Message}";
+        }
+    }
+}

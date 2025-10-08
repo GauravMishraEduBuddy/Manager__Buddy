@@ -1,0 +1,109 @@
+@using Syncfusion.Blazor
+@using Syncfusion.Blazor.Grids
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject UserState UserState
+@using Radzen
+
+<style>
+    
+     .sf-grid .e-gridcontent .e-row:nth-child(even) {
+        background-color: #f4edff; /* Light purple shade */
+    }
+
+    /* Grid customization */
+    .sf-grid {
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    .e-gridheader {
+        background: linear-gradient(90deg, #7B2CBF, #9D4EDD);
+        color: white;
+    }
+
+    .e-grid .e-headercell {
+        font-weight: bold;
+        font-size: 14px;
+        background-color: transparent;
+    }
+
+    .e-grid .e-rowcell {
+        font-size: 14px;
+        padding: 8px;
+        color: #333;
+    }
+
+    .e-grid .e-row:hover {
+        background-color: #f3f0ff !important;
+        transition: 0.3s;
+    }
+
+    /* Mobile layout */
+    @@media (max-width: 768px) {
+        .sf-grid
+
+    {
+        font-size: 13px;
+    }
+
+    .e-grid .e-rowcell {
+        padding: 6px;
+    }
+
+    .e-grid .e-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .e-grid .e-toolbar-item {
+        margin: 4px 0;
+    }
+
+    }
+</style>
+
+<RadzenCard Style="width: 100%; background: #fff; color:blue; padding: 1rem; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h5 style="margin: auto; font-size: 1rem; font-weight:bold; text-align:center;" >My Subjects</h5>
+</RadzenCard>
+<SfGrid @ref="SubjectGrid"
+        DataSource="@subjects"
+        AllowFiltering="true" AllowSorting="true" ShowColumnChooser="true"
+        AllowPaging="false" AllowResizing="true" Width="100%"
+        EnableAdaptiveUI="true" RowRenderingMode="RowDirection.Vertical"
+        Toolbar="@(new List<string>() { "Search", "ColumnChooser" })"
+        AllowTextWrap="true" class="sf-grid">
+    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
+    <GridPageSettings PageSize="10"></GridPageSettings>
+    <GridColumns>
+        <GridColumn Field="SubjectName" HeaderText="Subject" Width="150" />
+        <GridColumn Field="ClassAndSectionName" HeaderText="Class & Section" Width="150" />
+        <GridColumn Field="SubjectID" HeaderText="Subject ID" Width="120" />
+    </GridColumns>
+</SfGrid>
+
+@code {
+    private SfGrid<TeacherSubjectDto> SubjectGrid;
+    private List<TeacherSubjectDto> subjects = new List<TeacherSubjectDto>();
+
+    protected override void OnInitialized()
+    {
+        LoadSubjectsData();
+    }
+
+    private void LoadSubjectsData()
+    {
+        if (UserState.EmployeeDetails != null &&
+            UserState.EmployeeDetails.TeacherSubjects != null)
+        {
+            subjects = UserState.EmployeeDetails.TeacherSubjects.ToList();
+        }
+    }
+
+    public void RefreshData()
+    {
+        LoadSubjectsData();
+        StateHasChanged();
+    }
+}

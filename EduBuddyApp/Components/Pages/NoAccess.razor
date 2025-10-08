@@ -1,0 +1,41 @@
+@page "/no-access"
+@layout Layout.NoNavLayout
+@inject NavigationManager NavigationManager
+
+<div class="no-access-container">
+    <div class="text-center">
+        <div class="no-access-message">
+            Access to TeacherBuddy is currently unavailable for your account.
+            Please contact your School Administrator to activate your subscription.
+        </div>
+        <button class="btn btn-secondary mt-3" @onclick="GoBack">Back to Login</button>
+    </div>
+</div>
+
+@code {
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+}
+
+<style>
+    .no-access-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 1rem;
+    }
+
+    .no-access-message {
+        border: 1px solid #ff0000;
+        background-color: #ffe5e5;
+        color: #ff0000;
+        padding: 1rem;
+        border-radius: 8px;
+        max-width: 400px;
+        text-align: center;
+        font-weight: bold;
+    }
+</style>

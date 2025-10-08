@@ -1,0 +1,105 @@
+﻿@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject IExamMarksService ExamMarksService
+@inject ISubjectService SubjectService
+
+@if (studentMarks == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (studentMarks.Count == 0)
+{
+    <p><em>No marks available.</em></p>
+}
+else
+{
+    <SfGrid DataSource="@studentMarks" TValue="StudentClassMarkDto"
+            AllowFiltering="true" AllowSorting="true" AllowPaging="true" AllowResizing="true"
+            EnableAdaptiveUI="true" RowRenderingMode="RowDirection.Vertical"
+            Toolbar="@(new List<string>() { "Search", "ColumnChooser" })"
+            AllowTextWrap="true" Width="100%" class="table table-striped">
+        <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
+        <GridColumns>
+            <GridColumn Field="StudentId" HeaderText="ID" Width="80" />
+            <GridColumn Field="StudentName" HeaderText="Student Name" Width="150" />
+            @foreach (var subject in subjects)
+            {
+                <GridColumn HeaderText="@subject.SubjectName" Width="100" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Center">
+                    <Template>
+                        @{ var stu = context as StudentClassMarkDto; }
+                        @DisplayMark(stu, subject.SubjectId)
+                    </Template>
+                </GridColumn>
+            }
+            <GridColumn Field="TotalMarks" HeaderText="Total" Width="100" TextAlign="Syncfusion.Blazor.Grids.TextAlign.Right" />
+            <GridColumn Field="StudentExamPerformance" HeaderText="Performance" Width="150" />
+            <GridColumn Field="StudentPerformanceFeedback" HeaderText="Feedback" Width="200" />
+            <GridColumn Field="TeacherRemarks" HeaderText="Remarks" Width="200" />
+        </GridColumns>
+        
+
+    </SfGrid>
+}
+
+@code {
+    [Parameter] public int SectionId { get; set; }
+    [Parameter] public int ExamId { get; set; }
+
+    private List<StudentClassMarkDto>? studentMarks;
+    private List<SubjectDto> subjects = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        studentMarks = await ExamMarksService.GetSectionExamMarksAsync(SectionId, ExamId);
+        subjects = await LoadSubjectsAsync(studentMarks);
+    }
+
+    private async Task<List<SubjectDto>> LoadSubjectsAsync(List<StudentClassMarkDto> marks)
+    {
+        var ids = marks.SelectMany(m => m.MarksBySubject.Keys).Distinct();
+        var list = new List<SubjectDto>();
+        foreach (var id in ids)
+        {
+            var details = await SubjectService.GetSubjectAsync(id);
+            list.Add(new SubjectDto { SubjectId = id, SubjectName = details?.SubjectName ?? $"Subject {id}" });
+        }
+        return list;
+    }
+
+    private string DisplayMark(StudentClassMarkDto? student, int subjectId)
+    {
+        if (student == null)
+        {
+            return string.Empty;
+        }
+        if (student.MarksBySubject.TryGetValue(subjectId, out var mark))
+        {
+            if (mark.NumericMark.HasValue)
+            {
+                return mark.NumericMark.Value.ToString();
+            }
+            return mark.LetterGrade ?? string.Empty;
+        }
+        return string.Empty;
+    }
+
+     private object ComputeSubjectTotal(IEnumerable<object> data, int subjectId)
+    {
+        if (data == null)
+            return 0;
+
+        decimal total = 0;
+        // Sum values if present and convertible to decimal
+        foreach (var value in data)
+        {
+            if (value == null)
+                continue;
+
+            if (decimal.TryParse(value.ToString(), out decimal parsed))
+            {
+                total += parsed;
+            }
+        }
+        return total;
+    }
+}

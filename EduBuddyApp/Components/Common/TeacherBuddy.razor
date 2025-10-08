@@ -1,0 +1,386 @@
+﻿@page "/teacherbuddy"
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@using Syncfusion.Blazor.Grids
+@inject ICircularService CircularService
+@inject UserState UserState
+@inject IJSRuntime JSRuntime
+@using Syncfusion.Blazor.DropDowns
+@inject IOpenAIService OpenAIService
+@using Radzen
+
+<div class="ai-helpdesk-container" style="max-width:600px;margin:auto;padding:2rem;">
+    <h2 class="mb-4 text-center">AI Helpdesk for Teachers</h2>
+    @if (IsPageMode==true)
+        {
+            <div class="mb-3">
+                <label class="form-label">Class</label>
+                <input type="text" class="form-control" @bind="ClassInfo" placeholder="e.g. Class 10" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject</label>
+                <input type="text" class="form-control" @bind="SubjectInfo" placeholder="e.g. Mathematics" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Chapter/ Topics</label>
+                <input type="text" class="form-control" @bind="TopicInfo" placeholder="e.g. Algebra" />
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info mb-3" style="font-size:0.98rem;">
+            <strong>Already Included in Prompt:</strong><br />
+            <span>Class: <b>@ClassInfo</b></span><br />
+            <span>Subject: <b>@SubjectInfo</b></span><br />
+            <span>Topic Info: <b>@TopicInfo</b></span><br />
+            <span class="text-danger">Do <u>NOT</u> repeat these in your PromptText below.</span>
+        </div>
+    }
+    <!-- Option Selection -->
+    <div class="mb-2" style="display:flex;align-items:center;">
+        <label for="aiToolSelect" class="form-label" style="font-weight:600;font-size:1.05rem;margin-right:0.5rem;">
+            <span style="color:#2c3e50;">🧠 Select AI Tool</span>
+        </label>
+    </div>
+    <SfDropDownList TValue="string" TItem="TeachingAid"
+                    DataSource="@TeachingAids"
+                    @bind-Value="SelectedToolId"
+                    Placeholder="Select a tool"
+                    CssClass="mb-3">
+        <DropDownListFieldSettings Value="ID" Text="Tool" GroupBy="Category"></DropDownListFieldSettings>
+        <DropDownListEvents TValue="string" TItem="TeachingAid" ValueChange="OnToolChangedSingle"></DropDownListEvents>
+    </SfDropDownList>
+            <!-- 
+        <SfMultiSelect TValue="string[]" TItem="TeachingAid"
+                   Placeholder="Select a tool"
+                   DataSource="@TeachingAids"
+                   @bind-Value="SelectedToolIds"
+                   CssClass="mb-3">
+        <MultiSelectFieldSettings GroupBy="Category" Value="ID" Text="Tool"></MultiSelectFieldSettings>
+        <MultiSelectEvents TValue="string[]" TItem="TeachingAid" ValueChange="OnToolChanged"></MultiSelectEvents>
+    </SfMultiSelect>
+    -->
+
+    <!-- Help Panel -->
+    @if (SelectedHelpText != null)
+    {
+        <div class="help-panel card shadow-sm mb-3" style="background:#f8f9fa;">
+            <div class="card-body">
+                <h5 class="card-title">Tool Help</h5>
+                <p class="card-text">@SelectedHelpText</p>
+            </div>
+        </div>
+    }
+
+    <!-- Prompt Textbox -->
+    <div class="mb-3">
+        <label for="promptTextBox" class="form-label">Additional Prompt Details</label>
+        <input id="promptTextBox" type="text" class="form-control"
+               @bind="PromptText"
+               placeholder="E.g. 5 lessons, 2 revisions, 1 test" />
+    </div>
+
+    <!-- Submit Button -->
+   
+    <button class="btn btn-success w-100 mb-3" style="font-weight:600;font-size:1.1rem;"
+        @onclick="SubmitPrompt"
+        disabled="@IsButtonDisabled">
+        Get AI Assistant Materials
+    </button>
+
+    @if (IsLoading)
+{
+        <div class="d-flex justify-content-center align-items-center" style="height: 100px;">
+            <RadzenProgressBarCircular ProgressBarStyle="ProgressBarStyle.Success" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
+}
+
+    <!-- AI Assistant Results -->
+    <div class="ai-result-panel card shadow-sm mb-3" style="background:#e9f7ef;">
+        <div class="card-body">
+            <h5 class="card-title">AI Assistant Results</h5>
+            <textarea id="aiResultTextBox"
+                      class="form-control mb-2"
+                      style="min-height:240px;resize:vertical;font-size:1rem;"
+                      readonly>@AIResult</textarea>
+            <button class="btn btn-outline-primary w-100" style="font-weight:500;" @onclick="CopyAIResult">
+                Copy Text
+            </button>
+            @if (CopySuccess)
+            {
+                <div class="text-success mt-2 text-center" style="font-size:0.95rem;">
+                    Copied to clipboard!
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? ClassInfo { get; set; } = string.Empty;
+    [Parameter]
+    public string? SubjectInfo { get; set; } = string.Empty;
+    [Parameter]
+    public string? TopicInfo { get; set; } = string.Empty;
+    public string? PromptText { get; set; } = string.Empty;
+    private bool IsLoading { get; set; } = false;
+
+    public string? SelectedHelpText { get; set; }
+    public string[] SelectedToolIds { get; set; } = Array.Empty<string>();
+    public string? SelectedToolId { get; set; }
+    public IEnumerable<TeachingAid> TeachingAids { get; set; } = new TeachingAidSeed().TeachingAidList();
+
+    // AI Result
+    public string AIResult { get; set; } = string.Empty;
+    public bool CopySuccess { get; set; } = false;
+
+    // Detect if running as a page (no parameters passed)
+    [Parameter]
+    public bool? IsPageMode { get; set; } = true;
+
+   
+    private bool IsButtonDisabled => IsLoading || string.IsNullOrEmpty(SelectedToolId);
+
+
+
+
+
+    private void OnToolChangedSingle(ChangeEventArgs<string, TeachingAid> args)
+    {
+            var selected = TeachingAids.FirstOrDefault(aid => aid.ID == SelectedToolId);
+        SelectedHelpText = selected?.HelpText;
+    }
+    
+    private void OnToolChanged(MultiSelectChangeEventArgs<string[]> args)
+    {
+        if (SelectedToolIds.Length > 0)
+        {
+            var selected = TeachingAids.FirstOrDefault(aid => aid.ID == SelectedToolIds[0]);
+            SelectedHelpText = selected?.HelpText;
+        }
+        else
+        {
+            SelectedHelpText = null;
+        }
+    }
+
+    private async void SubmitPrompt()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        var selectedAid = TeachingAids.FirstOrDefault(aid => aid.ID == SelectedToolId);
+        if (selectedAid != null)
+        {
+            var prompt = selectedAid.PromptTemplate
+                .Replace("{ClassInfo}", ClassInfo ?? "")
+                .Replace("{SubjectInfo}", SubjectInfo ?? "")
+                .Replace("{TopicInfo}", TopicInfo ?? "")
+                .Replace("{PromptText}", PromptText ?? "");
+
+            // Call your AI service here
+            AIResult = await OpenAIService.SendUserPromptAsync(prompt) ?? "No response from AI.";
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyAIResult()
+    {
+        CopySuccess = false;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", AIResult);
+        CopySuccess = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        CopySuccess = false;
+        StateHasChanged();
+    }
+
+    public class TeachingAid
+    {
+        public string Tool { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string ID { get; set; } = string.Empty;
+        public string HelpText { get; set; } = string.Empty;
+        public string PromptTemplate { get; set; } = string.Empty;
+    }
+
+    public class TeachingAidSeed
+    {
+        public List<TeachingAid> TeachingAidList()
+        {
+            var list = new List<TeachingAid>
+        {
+            // LessonPlans
+            new() {
+                Tool = "Lesson Plan Builder",
+                Category = "LessonPlans",
+                ID = "LPB",
+                HelpText =@"Quickly create lesson plans tailored to your classroom needs.
+Examples:
+- Prepare lesson plan in 8 periods.
+- Lesson plan in 5 periods with 1 revision and 1 activity day.
+- Design a lesson plan for 6 periods, including 2 tests and 1 group project.",
+                PromptTemplate = "You are an AI assistant for school teachers. Generate detailed lesson plans for {ClassInfo} {SubjectInfo}, covering {TopicInfo}. The plan should be designed for {PromptText}. Each lesson plan should include objectives, key concepts, teaching methods, and assessment strategies. Ensure the content aligns with educational standards and is appropriate for the students' age and comprehension level. Include interactive elements and resources to facilitate effective learning."
+            },
+            new() {
+                Tool = "Co-Teaching Variant Builder",
+                Category = "LessonPlans",
+                ID = "CTV",
+               HelpText = @"Generate lesson plans for two teachers, with clear roles and tasks.
+Examples:
+- Co-teaching plan for 10th grade algebra, split between lead and support.
+- Create a science lesson with parallel activities for two teachers.
+- Assign group work and assessment duties to both teachers."
+,
+PromptTemplate = "Design a co-teaching variant lesson plan for {ClassInfo} {SubjectInfo}, for {TopicInfo}. Split roles into Lead and Support teachers, including specific tasks for each. Include objectives, activities, and assessment strategies aligned with curriculum."
+            },
+            new() {
+                Tool = "5-Minute Sub-Plan",
+                Category = "LessonPlans",
+                ID = "Sub5",
+                HelpText = @"Get a quick, emergency lesson plan for last-minute or substitute teaching.
+Examples:
+- Create a 5-minute plan for a math class with warm-up, main activity, and closure.
+- Emergency lesson plan for science with a simple experiment and discussion.
+- Quick substitute plan for English including reading and a short writing task.",
+                PromptTemplate = "Create an ultra-condensed substitute lesson plan for {ClassInfo} {SubjectInfo} {TopicInfo} suitable for emergencies. Include a warm-up, main activity, and closure with clear steps and timing."
+            },
+            new() {
+                Tool = "Activity Generator",
+                Category = "LessonPlans",
+                ID = "AGen",
+                    HelpText = @"Get creative classroom activities for any topic or group size.
+Examples:
+- Generate a hands-on activity for fractions using everyday objects.
+- Suggest a group project for environmental science.
+- Create a quiz game for history revision."
+,
+ PromptTemplate = "You are an AI assistant supporting school teachers. Create hands-on activity ideas for {PromptText}. These should cover {TopicInfo} of {SubjectInfo} at a level appropriate for {ClassInfo}. Tailor to enhance student understanding and engagement. Ensure they are interactive, practical for a classroom setting, and align with educational objectives. Include necessary materials, step-by-step instructions, and expected learning outcomes for each activity."
+            },
+
+            // Resources
+            new() {
+                Tool = "Notes for Teacher",
+                Category = "Resources",
+                ID = "NFT",
+                    HelpText = @"Receive ready-to-use teaching notes with key concepts and examples.
+Examples:
+- Provide notes for the topic 'Photosynthesis' in biology.
+- Generate summary points for 'World War II' in history.
+- List important formulas for 'Quadratic Equations' in mathematics.",
+PromptTemplate = "You are an AI assistant to help school teachers. Generate comprehensive notes for {TopicInfo}, which should be tailored for the {SubjectInfo} subject of {ClassInfo} class. Begin with a clear Definition, followed by a Description in simple, understandable terms for effective teaching. Include Further Details such as teaching strategies, relevant examples, case studies, and possible questions for classroom discussion. Ensure the depth and complexity of the notes are appropriate for teaching at the specified Class and Subject level."
+            },
+            new() {
+                Tool = "PowerPoint Slides Creator",
+                Category = "Resources",
+                ID = "PPSC",
+               HelpText = @"Create engaging PowerPoint slides for your lessons.
+Examples:
+- Make a 10-slide deck for 'Chemical Reactions'.
+- Slides for 'Geometry' with solved examples and diagrams.
+- Presentation for 'Computer Basics' with code snippets.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Generate material for PowerPoint slides for {TopicInfo}, which should be tailored for the {SubjectInfo} subject of the {ClassInfo} class. Number of slides in presentation as {PromptText}. Include proper headings and content in bullet points, with details, definitions, simplified explanations, and examples appropriate for the specified level. If the subject involves numerical problems, include solved examples. For a computer coding subject, incorporate relevant code snippets. Format the slides as follows: 'Slide 1-- [Heading 1]\\n[Content 1]', 'Slide 2--[Heading 2]\\n[Content 2]', etc. Ensure the content is educational, engaging, and aligns with curriculum standards."
+            },
+            new() {
+                Tool = "Topic Discussion Ideas",
+                Category = "Resources",
+                ID = "TDI",
+                HelpText = @"Generate engaging discussion topics and questions for your classroom.
+Examples:
+- Suggest discussion ideas for 'Climate Change' in geography.
+- Create thought-provoking questions for 'Freedom Fighters' in history.
+- List topics for group discussion on 'Internet Safety' in computer science.",
+                PromptTemplate = "You are an AI assistant for school teachers. Suggest engaging discussion topics for {TopicInfo}, which should be tailored for the {SubjectInfo} subject of the {ClassInfo} class. Choose topics that encourage critical thinking and student participation, and relate closely to the curriculum. Provide a list of topics along with brief descriptions or questions to stimulate discussion."
+            },
+
+            // Homework
+            new() {
+                Tool = "Homework Composer",
+                Category = "Homework",
+                ID = "HWC",
+                   HelpText = @"Get customized homework assignments for any subject or level.
+Examples:
+- Homework for 7th grade math, including word problems.
+- Assign reading and questions for 'The Solar System'.
+- Create a worksheet for 'Grammar Practice' in English.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Generate a homework assignment for {TopicInfo}, which should be tailored for the {SubjectInfo} subject of the {ClassInfo} class. Keep difficulty level as '{PromptText}'. Ensure the assignment is engaging, relevant, and aligns with educational objectives. Include a clear description of the assignment, along with any necessary instructions, resources, and due dates."
+            },
+            new() {
+                Tool = "Assessment Toolkit",
+                Category = "Homework",
+                ID = "ATK",
+                HelpText = @"Design assessments with varied question types and rubrics.
+Examples:
+- Create a test for 'Algebra' with multiple choice and short answers.
+- Generate a rubric for a science project.
+- Assessment for 'Reading Comprehension' with Bloom's Taxonomy levels.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Generate an assessment focusing on {TopicInfo} of {SubjectInfo} at a level appropriate for {ClassInfo}, with questions as per '{PromptText}'. Ensure the assessment is engaging, relevant, and aligns with educational objectives. For each question, include a label indicating its corresponding Bloom's Taxonomy level (e.g., Remembering, Understanding, Applying, etc.). Provide a clear description of the assessment, along with any necessary instructions, resources, and due dates. Each question should be engaging, clear, and structured to enhance the learning experience and maintain the interest of students."
+            },
+
+            // TeachingTools
+            new() {
+                Tool = "Quotations on the Topic",
+                Category = "TeachingTools",
+                ID = "QOTT",
+               HelpText = @"Find inspiring quotations to enrich your lessons.
+Examples:
+- Provide 5 quotes about perseverance for a motivation lesson.
+- Famous quotes on 'Innovation' for computer science.
+- Original quotes for 'Teamwork' in sports.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Provide {PromptText} inspiring and relevant quotations for {TopicInfo} in the {SubjectInfo} subject. Ensure the language and content of the quotations are appropriate for {ClassInfo} level of the class. Include famous quotes with the names of the persons who said them, and create original quotes that align with the subject matter and educational objectives. These quotations should be thought-provoking and resonate with the students' learning journey."
+            },
+            new() {
+                Tool = "Game & Quiz Wizard",
+                Category = "TeachingTools",
+                ID = "GQW",
+                   HelpText = @"Create interactive games and quizzes for classroom fun.
+Examples:
+- Make a Kahoot quiz for 'Periodic Table'.
+- Design a crossword puzzle for 'Vocabulary Building'.
+- Generate a group quiz for 'Indian History'.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Create {PromptText} interactive and educational game(s) or quiz(zes) themed around the specified focus, covering aspects of {TopicInfo} in the {SubjectInfo} subject for {ClassInfo}. Ensure each game or quiz is engaging, aligns with educational objectives, and is suitable for the specified class level. Include instructions, resources needed, and any relevant educational goals or outcomes."
+            },
+            new() {
+                Tool = "Collaborative Project Ideas",
+                Category = "TeachingTools",
+                ID = "CPI",
+                   HelpText = @"Get ideas for group projects with clear roles and outcomes.
+Examples:
+- Group project on 'Renewable Energy' for science class.
+- Collaborative art project for 'Famous Artists'.
+- Team research on 'Local History' with presentation.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Create multiple collaborative project options for {TopicInfo} in {SubjectInfo}, tailored to students in {ClassInfo}. Design these projects to encourage student collaboration and align with the curriculum. Provide detailed outlines for each project idea, including distinct goals, instructions, resources needed, and methods to assess student contributions and learning outcomes."
+            },
+
+            // ExtendedLearning
+            new() {
+                Tool = "Extended Reading List Generator",
+                Category = "ExtendedLearning",
+                ID = "ERLG",
+                   HelpText = @"Receive a curated reading list for deeper learning.
+Examples:
+- Reading list for 'Ancient Civilizations' in social studies.
+- Books and articles on 'Climate Change' for science.
+- Suggested resources for 'Creative Writing'.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Create a comprehensive reading list for {TopicInfo} in {SubjectInfo} suitable for {ClassInfo} level. Include a variety of resources such as books, articles, and research papers that are authoritative, insightful, and relevant to the topic. For each resource, provide a brief description, highlight key points, and explain its relevance to the subject matter. Ensure the reading list is engaging, diverse, and tailored to complement the curriculum, enhancing students' understanding and interest in the topic."
+            },
+            new() {
+                Tool = "Practical Experiment Guide",
+                Category = "ExtendedLearning",
+                ID = "PEG",
+               HelpText = @"Get step-by-step guides for classroom experiments.
+Examples:
+- Experiment guide for 'Density of Liquids'.
+- Instructions for 'Plant Growth Observation'.
+- Safety checklist for 'Simple Electrical Circuits'.",
+ PromptTemplate = "You are an AI assistant to help school teachers. Develop a detailed practical experiment guide for {TopicInfo} in {SubjectInfo}, appropriate for {ClassInfo} level. This guide should include: 1. Objectives: Clearly state the learning goals and how the experiment relates to the topic. 2. Materials: List all the necessary equipment and resources. 3. Methods: Provide step-by-step instructions for conducting the experiment. 4. Safety Precautions: Outline any necessary safety measures to be taken during the experiment. 5. Expected Outcomes: Describe what results students should anticipate and how they demonstrate key concepts. 6. Educational Alignment: Ensure the experiment aligns with the curriculum and enhances students' understanding of the subject matter. Make sure the experiment is engaging, thought-provoking, and tailored to the comprehension level of the students, fostering practical application of theoretical knowledge."
+            }
+        };
+
+            return list;
+        }
+    }
+
+   
+}

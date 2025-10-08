@@ -1,0 +1,92 @@
+@using EduBuddyApp.Models
+@using EduBuddyApp.Services
+@inject IBooksChapterService BooksChapterService
+@inject DialogService DialogService
+
+<EditForm Model="dto" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label class="form-label">Chapter Number</label>
+        <InputNumber class="form-control" @bind-Value="dto.ChapterNumber" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Chapter Title</label>
+        <InputText class="form-control" @bind-Value="dto.ChapterTitle" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Exercises</label>
+        <InputNumber class="form-control" @bind-Value="dto.ChapterExcercises" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Allotted Lectures</label>
+        <InputNumber class="form-control" @bind-Value="dto.ChapterAllottedLectures" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Difficulty Level</label>
+        <InputSelect class="form-select" @bind-Value="dto.DifficultyLevel">
+            <option value="">-- select --</option>
+            @foreach (var level in Enum.GetValues<DifficultyLevel>())
+            {
+                <option value="@level">@level</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Topics</label>
+        <InputText class="form-control" @bind-Value="dto.Topics" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Chapter Activity</label>
+        <InputText class="form-control" @bind-Value="dto.ChapterActivity" />
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => DialogService.Close()">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int BookId { get; set; }
+    [Parameter] public int? ChapterId { get; set; }
+
+    private ChapterEditDto dto = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        dto.BookID = BookId;
+        if (ChapterId.HasValue)
+        {
+            var chapter = await BooksChapterService.GetChapterAsync(ChapterId.Value);
+            if (chapter != null)
+            {
+                dto.ChapterID = chapter.ChapterID;
+                dto.ChapterNumber = chapter.ChapterNumber;
+                dto.ChapterTitle = chapter.ChapterTitle;
+                dto.ChapterExcercises = chapter.ChapterExcercises;
+                dto.ChapterAllottedLectures = chapter.ChapterAllottedLectures;
+                dto.DifficultyLevel = chapter.DifficultyLevel;
+                dto.Topics = chapter.Topics;
+                dto.ChapterActivity = chapter.ChapterActivity;
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        ChaptersViewModel? result;
+        if (dto.ChapterID.HasValue && dto.ChapterID.Value > 0)
+        {
+            result = await BooksChapterService.UpdateChapterAsync(dto.ChapterID.Value, dto);
+        }
+        else
+        {
+            result = await BooksChapterService.CreateChapterAsync(dto);
+        }
+
+        if (result != null)
+        {
+            var full = await BooksChapterService.GetChapterAsync(result.ChapterID);
+            DialogService.Close(full ?? result);
+        }
+    }
+}

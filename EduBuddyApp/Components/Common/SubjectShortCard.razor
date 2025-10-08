@@ -1,0 +1,39 @@
+@using EduBuddyApp.Models
+@using Radzen
+
+<RadzenCard Style="padding: 12px; margin: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); border-radius: 10px; background: linear-gradient(135deg, #f6f9fc, #e9eff5);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center;">
+            <RadzenIcon Icon="book" Style="color: #3498db; font-size: 1.5rem; margin-right: 8px;" />
+            <span style="font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                @Subject.SubjectName
+            </span>
+        </div>
+        <div style="font-size: 0.8rem; color: #7f8c8d;">
+            (ID: @Subject.SubjectID)
+        </div>
+    </div>
+    <div style="margin-top: 6px; font-size: 0.95rem; color: #555;">
+        <RadzenIcon Icon="group" Style="color: #e74c3c; margin-right: 4px;" />
+        <strong>Class &amp; Section:</strong> @Subject.ClassAndSectionName
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 0.9rem; color: #34495e;">
+        <div style="display: flex; align-items: center;">
+            <RadzenIcon Icon="timer" Style="color: #f39c12; margin-right: 4px;" />
+            <span>Weekly Load: @(Subject.WeeklyLoad.HasValue ? Subject.WeeklyLoad.Value.ToString() : "-")</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <RadzenIcon Icon="assessment" Style="color: #2ecc71; margin-right: 4px;" />
+            <span>Status: @(Subject.ReportCardStatus?.ToString() ?? "-")</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <RadzenIcon Icon="filter_list" Style="color: #9b59b6; margin-right: 4px;" />
+            <span>Order: @(Subject.ReportCardOrder.HasValue ? Subject.ReportCardOrder.Value.ToString() : "-")</span>
+        </div>
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter]
+    public TeacherSubjectDto Subject { get; set; } = default!;
+}

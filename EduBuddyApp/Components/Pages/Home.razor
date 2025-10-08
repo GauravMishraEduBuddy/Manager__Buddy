@@ -1,0 +1,189 @@
+﻿@page "/home"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Services
+@using EduBuddyApp.Models
+@inject IEmployeeService EmployeeService
+@inject ISectionService SectionService
+@inject UserState UserState
+@using EduBuddyApp.Components.Common
+@using System.Timers
+@implements IDisposable
+
+
+
+@if (employee == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <RadzenCard Style="width:100%; background-color:white; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+        <div style="display:flex; align-items:center;">
+            @if (!string.IsNullOrEmpty(staffPhotoUrl))
+            {
+                <RadzenImage Path="@staffPhotoUrl" Style="width:60px;height:60px;border-radius:50%;object-fit:cover;" />
+            }
+            else
+            {
+                <RadzenIcon Icon="account_circle" Style="font-size:60px;border:2px solid #007bff;border-radius:50%;" />
+            }
+            <div style="margin-left:1rem;">
+                <div style="font-size:1rem;font-weight:bold;color:#007bff;">@UserState.EmployeeDetails?.EmployeeName</div>
+                <div style="color:#6c757d;">@UserState.EmployeeDetails?.DesignationName</div>
+            </div>
+        </div>
+    </RadzenCard>
+    <div class="clock-card">
+        <p class="welcome-text" style="text-align:center;">Manage your daily teaching tasks quickly and easily.</p>
+        <RadzenIcon Icon="calendar_today" Style="font-size:1.2rem;color:#007bff;margin:auto;font-weight:bold;" />
+        <span Style="font-size:1rem;color:#007bff;margin:auto;font-weight:bold;">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
+        <br />
+        <RadzenIcon Icon="schedule" Style="font-size:1.2rem;color:#007bff;margin:auto;font-weight:bold;" />
+        <span Style="font-size:1rem;color:#007bff;margin:auto;font-weight:bold;">@currentTime</span>
+    </div>
+
+
+    <div class="quick-actions">
+        <NavLink href="/mytimetable" class="action-card" >
+            <RadzenIcon Icon="event" Style="font-size:1.4rem;color:#333;" />
+            <span>My Schedule</span>
+        </NavLink>
+        <NavLink href="/syllabus" class="action-card" >
+            <RadzenIcon Icon="assignment" Style="font-size:1.4rem;color:#333;" />
+            <span>Syllabus</span>
+        </NavLink>
+        <NavLink href="/mysection" class="action-card" >
+            <RadzenIcon Icon="groups" Style="font-size:1.4rem;color:#333;" />
+            <span>My Class</span>
+        </NavLink>
+        <NavLink href="/mysubjectmarks" class="action-card" >
+            <RadzenIcon Icon="insights" Style="font-size:1.4rem;color:#333;" />
+            <span>Marks Report</span>
+        </NavLink>
+    </div>
+
+
+
+    <TeacherSubjectGrid />
+}
+
+<style>
+    .clock-card {
+        margin: 0.3rem 0;
+        padding: 0.8rem;
+        background-color: #f8f9fa;
+        border-left: 4px solid #007bff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        font-size: 1rem;
+        color: #343a40;
+        border-radius: 6px;
+        line-height: 1.6;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        color: #333;
+    }
+
+        .action-card span {
+            margin-top: 0.5rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+            .action-card span :hover {
+                color: lightgoldenrodyellow;
+            }
+
+    .student-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding: 0.5rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .student-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid #007bff;
+        object-fit: cover;
+    }
+
+</style>
+
+@code {
+    private Employee? employee;
+    private string? staffPhotoUrl;
+    private List<StudentViewShortModel>? students;
+    private const string FallbackIcon = "/images/default-user.png";
+    private string currentDate = string.Empty;
+    private string currentTime = string.Empty;
+    private Timer? clockTimer;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.EmployeeId is not null)
+        {
+            employee = await EmployeeService.GetEmployeeAsync(UserState.EmployeeId.Value);
+            if (UserState.SchoolId is not null)
+            {
+                staffPhotoUrl = EmployeeService.GetStaffPhotoUrl(UserState.EmployeeId.Value, UserState.SchoolId.Value);
+            }
+
+            int sectionId = UserState.EmployeeDetails?.ClassTeacherSchoolClassId ?? 0;
+            if (sectionId != 0)
+            {
+                students = await SectionService.GetStudentsInSectionAsync(sectionId);
+            }
+        }
+    }
+
+    private string GetStuPhotoUrl(int studentId)
+    {
+        int userSchoolId = UserState.SchoolId ?? 0;
+        string schoolContainerName = userSchoolId == 1 ? "data" : $"school-{userSchoolId}";
+        return BlobStorageService.GetStuPhotoUrl(studentId, schoolContainerName);
+    }
+   
+    private Timer? timer;
+
+    protected override void OnInitialized()
+    {
+        timer = new Timer(1000);
+        timer.Elapsed += UpdateTime;
+        timer.AutoReset = true;
+        timer.Enabled = true;
+    }
+
+    private void UpdateTime(object? sender, ElapsedEventArgs e)
+    {
+        currentTime = DateTime.Now.ToString("hh:mm:ss tt");
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        timer?.Stop();
+        timer?.Dispose();
+    }
+
+}

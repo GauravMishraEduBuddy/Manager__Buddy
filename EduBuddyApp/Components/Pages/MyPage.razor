@@ -1,0 +1,200 @@
+﻿@page "/mypage"
+@using Syncfusion.Blazor.Calendars
+@using Radzen
+@using Radzen.Blazor
+@using System.Linq
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using EduBuddyApp.Services
+@using EduBuddyApp.Models
+@using EduBuddyApp.Components.Common
+@inject NavigationManager NavManager
+@inject IAuthService AuthService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject IEmployeeService EmployeeService
+@inject ISchoolService SchoolService
+@inject UserState UserState
+@inject NavigationManager Nav
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+    body {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .home-container {
+        padding: 1rem;
+        max-width: 100%;
+        margin: auto;
+        font-size: 0.93rem;
+    }
+
+    .center-text {
+        text-align: center;
+        color: #444;
+        margin-bottom: 1.2rem;
+        font-size: 0.95rem;
+    }
+
+    .clock-date {
+        font-weight: 500;
+    }
+
+    .current-time {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #4B0082;
+    }
+
+    .profile-card {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: linear-gradient(to right, #fdfbfb, #ebedee);
+    }
+
+    .combined-info-card {
+        margin-top: 1rem;
+        padding: 1.2rem;
+        border-radius: 12px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .section-heading {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #4B0082;
+        margin-bottom: 0.3rem;
+        margin-top: 1rem;
+        border-left: 4px solid #4B0082;
+        padding-left: 0.5rem;
+    }
+
+        .section-heading:first-child {
+            margin-top: 0;
+        }
+
+    .radzen-button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    @@media (min-width: 480px) {
+        .radzen-button {
+            width: auto;
+        }
+    }
+
+    .break-text {
+        display: inline-block;
+        max-width: 100%;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+</style>
+
+<div class="home-container">
+    @* <div class="center-text">
+        <div class="clock-date">📅 @DateTime.Now.ToString("dddd, dd MMMM yyyy")</div>
+        <div class="current-time">🕒 @CurrentTime</div>
+    </div> *@
+
+    <RadzenCard class="profile-card">
+        <div style="text-align:center;">
+            @if (!string.IsNullOrEmpty(staffPhotoUrl))
+            {
+                <RadzenImage Path="@staffPhotoUrl" Style="width:100px; height:100px; border-radius:50%; object-fit:cover; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" />
+            }
+            else
+            {
+                <RadzenIcon Icon="account_circle" Style="font-size:100px; color:#6c757d;" />
+            }
+
+            <h4 style="margin-top:0.7rem; color:#4B0082;">@UserState.EmployeeDetails?.EmployeeName</h4>
+            <p style="margin:0; color:#6c757d;">@UserState.EmployeeDetails?.DesignationName</p>
+            <p style="margin:0; font-size: 0.85rem; color:#999;">@school?.SchoolName</p>
+
+            <RadzenButton Icon="edit" Text="Edit Profile" Style="margin-top:1rem;" Click="@EditProfile" class="radzen-button" />
+        </div>
+    </RadzenCard>
+
+    <RadzenCard class="combined-info-card">
+        <div class="section-heading">📞 Contact Information</div>
+        <p><strong>Email:</strong> <span class="break-text">@UserState.EmployeeDetails?.EmployeeEmail</span></p>
+        <p><strong>Phone:</strong> <span class="break-text">@UserState.EmployeeDetails?.EmployeeMobile1</span></p>
+
+
+        <div class="section-heading">Professional Details</div>
+        <p><strong>Employee ID:</strong> @UserState.EmployeeDetails?.EmployeeId</p>
+        <p><strong>Daily Attendance:</strong> @UserState.EmployeeDetails?.IsInDailyAttendance</p>
+
+        <div class="section-heading">👤 Personal Details</div>
+        <p><strong>Gender:</strong> @UserState.EmployeeDetails?.Gender</p>
+       
+        <div class="section-heading">🔐 Account</div>
+        <RadzenButton Icon="lock" Text="Change Password" Click="@ChangePassword" class="radzen-button" />
+        <RadzenButton Icon="logout" Text=@(isLoggingOut ? "Processing..." : "LogOut") Disabled="@isLoggingOut" ButtonStyle="ButtonStyle.Danger" Click="@DoLogout" class="radzen-button" />
+    </RadzenCard>
+    
+</div>
+
+@code {
+    private string staffPhotoUrl = "";
+    private School? school;
+    private Employee? employee;
+    private bool isLoggingOut;
+
+
+    void EditProfile() => NavManager.NavigateTo("/edit-profile");
+    void ChangePassword() => NavManager.NavigateTo("/change-password");
+
+    async Task DoLogout()
+    {
+        isLoggingOut = true;
+        StateHasChanged();
+
+        try
+        {
+            await AuthService.LogoutAsync();
+            UserState.EmployeeId = null;
+            Nav.NavigateTo("", true);
+        }
+        finally
+        {
+            isLoggingOut = false;
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.EmployeeId is not null)
+        {
+            if (UserState.EmployeeDetails is null)
+            {
+                UserState.EmployeeDetails = await EmployeeService.GetEmployeeBasicAsync(UserState.EmployeeId.Value);
+            }
+
+            employee = await EmployeeService.GetEmployeeAsync(UserState.EmployeeId.Value);
+
+            if (UserState.SchoolId is null)
+            {
+                UserState.SchoolId = employee?.SchoolID;
+            }
+
+            if (UserState.EmployeeId is not null && UserState.SchoolId is not null)
+            {
+                staffPhotoUrl = EmployeeService.GetStaffPhotoUrl(UserState.EmployeeId.Value, UserState.SchoolId.Value);
+                school = await SchoolService.GetSchoolAsync(UserState.SchoolId.Value);
+            }
+        }
+    }
+
+
+}

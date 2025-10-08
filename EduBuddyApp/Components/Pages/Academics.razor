@@ -1,0 +1,176 @@
+@page "/academics"
+@inject NavigationManager Navigation
+
+<div class="academics-page">
+    <h1 class="academics-heading">Academics</h1>
+    <div class="academics-grid">
+
+        <RadzenCard class="academics-card" Style="background: #e3f2fd;">
+            <div class="card-content">
+                <RadzenIcon Icon="schedule" Style="font-size:48px; color:#1976d2;" />
+                <h3>My Time Table</h3>
+                <RadzenButton Text="Go" Icon="schedule" Style="background:#1976d2; color:white;" Click="@(() => Navigate("mytimetable"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #fff3e0;">
+            <div class="card-content">
+                <RadzenIcon Icon="group" Style="font-size:48px; color:#f57c00;" />
+                <h3>My Section</h3>
+                <RadzenButton Text="Go" Icon="group" Style="background:#f57c00; color:white;" Click="@(() => Navigate("mysection"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #fce4ec;">
+            <div class="card-content">
+                <RadzenIcon Icon="menu_book" Style="font-size:48px; color:#d81b60;" />
+                <h3>Syllabus</h3>
+                <RadzenButton Text="Go" Icon="menu_book" Style="background:#d81b60; color:white;" Click="@(() => Navigate("syllabus"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #e8f5e9;">
+            <div class="card-content">
+                <RadzenIcon Icon="event" Style="font-size:48px; color:#388e3c;" />
+                <h3>Period Entry</h3>
+                <RadzenButton Text="Go" Icon="event" Style="background:#388e3c; color:white;" Click="@(() => Navigate("periodentry"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #fffde7;">
+            <div class="card-content">
+                <RadzenIcon Icon="grading" Style="font-size:48px; color:#fbc02d;" />
+                <h3>My Section Marks</h3>
+                <RadzenButton Text="Go" Icon="grading" Style="background:#fbc02d; color:white;" Click="@(() => Navigate("mysectionmarks"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #ede7f6;">
+            <div class="card-content">
+                <RadzenIcon Icon="grading" Style="font-size:48px; color:#7e57c2;" />
+                <h3>My Subject Marks</h3>
+                <RadzenButton Text="Go" Icon="grading" Style="background:#7e57c2; color:white;" Click="@(() => Navigate("mysubjectmarks"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #e0f7fa;">
+            <div class="card-content">
+                <RadzenIcon Icon="library_books" Style="font-size:48px; color:#00838f;" />
+                <h3>Books</h3>
+                <RadzenButton Text="Go" Icon="library_books" Style="background:#00838f; color:white;" Click="@(() => Navigate("books"))" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="academics-card" Style="background: #f3e5f5;">
+            <div class="card-content">
+                <RadzenIcon Icon="check_circle" Style="font-size:48px; color:#6a1b9a;" />
+                <h3>Notebook Corrections</h3>
+                <RadzenButton Text="Go" Icon="check_circle" Style="background:#6a1b9a; color:white;" Click="@(() => Navigate("notebookcorrections"))" />
+            </div>
+        </RadzenCard>
+
+    </div>
+</div>
+
+@code {
+    void Navigate(string path)
+    {
+        Navigation.NavigateTo($"/{path}");
+    }
+}
+
+<style>
+    .academics-page {
+        padding: 24px;
+        background: linear-gradient(135deg, #e3f2fd 0%, #fce4ec 100%);
+        min-height: 100vh;
+    }
+
+    .academics-heading {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 32px;
+        color: #1976d2;
+        letter-spacing: 2px;
+    }
+
+    .academics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        justify-items: center;
+    }
+
+    .academics-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 24px 16px;
+        border-radius: 18px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+        width: 100%;
+        max-width: 280px;
+        min-height: 260px;
+        text-align: center;
+        transition: transform 0.2s;
+        background-color: white;
+    }
+
+        .academics-card:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        }
+
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+        .card-content h3 {
+            margin: 16px 0 12px 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .card-content .rz-icon {
+            margin-bottom: 8px;
+        }
+
+        .card-content .rz-button {
+            margin-top: 12px;
+            width: 100px;
+            font-size: 0.9rem;
+        }
+
+    @@media screen and (max-width: 480px) {
+        .academics-heading
+
+    {
+        font-size: 1.8rem;
+        margin-bottom: 24px;
+    }
+
+    .academics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .academics-card {
+        padding: 20px 12px;
+        min-height: 220px;
+    }
+
+    .card-content h3 {
+        font-size: 1.1rem;
+    }
+
+    .card-content .rz-button {
+        width: 90px;
+        font-size: 0.85rem;
+    }
+
+    }
+</style>
