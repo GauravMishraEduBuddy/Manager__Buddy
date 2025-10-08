@@ -4,186 +4,141 @@
 @using EduBuddyApp.Services
 @using EduBuddyApp.Models
 @inject IEmployeeService EmployeeService
-@inject ISectionService SectionService
 @inject UserState UserState
-@using EduBuddyApp.Components.Common
-@using System.Timers
-@implements IDisposable
 
-
-
-@if (employee == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <RadzenCard Style="width:100%; background-color:white; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
-        <div style="display:flex; align-items:center;">
-            @if (!string.IsNullOrEmpty(staffPhotoUrl))
-            {
-                <RadzenImage Path="@staffPhotoUrl" Style="width:60px;height:60px;border-radius:50%;object-fit:cover;" />
-            }
-            else
-            {
-                <RadzenIcon Icon="account_circle" Style="font-size:60px;border:2px solid #007bff;border-radius:50%;" />
-            }
-            <div style="margin-left:1rem;">
-                <div style="font-size:1rem;font-weight:bold;color:#007bff;">@UserState.EmployeeDetails?.EmployeeName</div>
-                <div style="color:#6c757d;">@UserState.EmployeeDetails?.DesignationName</div>
-            </div>
+<div class="welcome-manager-container">
+    <div class="welcome-card">
+        <div class="welcome-icon">
+            🏢
         </div>
-    </RadzenCard>
-    <div class="clock-card">
-        <p class="welcome-text" style="text-align:center;">Manage your daily teaching tasks quickly and easily.</p>
-        <RadzenIcon Icon="calendar_today" Style="font-size:1.2rem;color:#007bff;margin:auto;font-weight:bold;" />
-        <span Style="font-size:1rem;color:#007bff;margin:auto;font-weight:bold;">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
-        <br />
-        <RadzenIcon Icon="schedule" Style="font-size:1.2rem;color:#007bff;margin:auto;font-weight:bold;" />
-        <span Style="font-size:1rem;color:#007bff;margin:auto;font-weight:bold;">@currentTime</span>
+        <h1 class="welcome-title">Welcome to Manager Buddy!</h1>
+        
+        @if (UserState.EmployeeDetails != null)
+        {
+            <div class="user-info">
+                <p class="user-name">Hello, @UserState.EmployeeDetails.EmployeeName!</p>
+                <p class="user-role">@UserState.EmployeeDetails.DesignationName</p>
+            </div>
+        }
+        
+        <div class="welcome-message">
+            <p>Your comprehensive management platform is ready to help you streamline operations and manage your team effectively.</p>
+        </div>
+        
+        <div class="current-time">
+            <span class="date">@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            <span class="time">@DateTime.Now.ToString("hh:mm tt")</span>
+        </div>
     </div>
-
-
-    <div class="quick-actions">
-        <NavLink href="/mytimetable" class="action-card" >
-            <RadzenIcon Icon="event" Style="font-size:1.4rem;color:#333;" />
-            <span>My Schedule</span>
-        </NavLink>
-        <NavLink href="/syllabus" class="action-card" >
-            <RadzenIcon Icon="assignment" Style="font-size:1.4rem;color:#333;" />
-            <span>Syllabus</span>
-        </NavLink>
-        <NavLink href="/mysection" class="action-card" >
-            <RadzenIcon Icon="groups" Style="font-size:1.4rem;color:#333;" />
-            <span>My Class</span>
-        </NavLink>
-        <NavLink href="/mysubjectmarks" class="action-card" >
-            <RadzenIcon Icon="insights" Style="font-size:1.4rem;color:#333;" />
-            <span>Marks Report</span>
-        </NavLink>
-    </div>
-
-
-
-    <TeacherSubjectGrid />
-}
+</div>
 
 <style>
-    .clock-card {
-        margin: 0.3rem 0;
-        padding: 0.8rem;
-        background-color: #f8f9fa;
-        border-left: 4px solid #007bff;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        font-size: 1rem;
-        color: #343a40;
-        border-radius: 6px;
-        line-height: 1.6;
-    }
-
-    .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-top: 1rem;
-    }
-
-    .action-card {
+    .welcome-manager-container {
         display: flex;
-        flex-direction: column;
-        align-items: center;
         justify-content: center;
-        text-decoration: none;
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        color: #333;
+        align-items: center;
+        min-height: 80vh;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
-        .action-card span {
-            margin-top: 0.5rem;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
+    .welcome-card {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+        animation: fadeInUp 0.8s ease-out;
+    }
 
-            .action-card span :hover {
-                color: lightgoldenrodyellow;
-            }
-
-    .student-scroll {
-        display: flex;
-        overflow-x: auto;
-        gap: 8px;
-        padding: 0.5rem 0;
+    .welcome-icon {
+        font-size: 4rem;
         margin-bottom: 1rem;
     }
 
-    .student-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 2px solid #007bff;
-        object-fit: cover;
+    .welcome-title {
+        color: #2c3e50;
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
     }
 
-</style>
+    .user-info {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
 
-@code {
-    private Employee? employee;
-    private string? staffPhotoUrl;
-    private List<StudentViewShortModel>? students;
-    private const string FallbackIcon = "/images/default-user.png";
-    private string currentDate = string.Empty;
-    private string currentTime = string.Empty;
-    private Timer? clockTimer;
+    .user-name {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
 
+    .user-role {
+        color: #6c757d;
+        font-size: 1rem;
+        margin: 0;
+    }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (UserState.EmployeeId is not null)
-        {
-            employee = await EmployeeService.GetEmployeeAsync(UserState.EmployeeId.Value);
-            if (UserState.SchoolId is not null)
-            {
-                staffPhotoUrl = EmployeeService.GetStaffPhotoUrl(UserState.EmployeeId.Value, UserState.SchoolId.Value);
-            }
+    .welcome-message {
+        color: #6c757d;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
 
-            int sectionId = UserState.EmployeeDetails?.ClassTeacherSchoolClassId ?? 0;
-            if (sectionId != 0)
-            {
-                students = await SectionService.GetStudentsInSectionAsync(sectionId);
-            }
+    .current-time {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 10px;
+    }
+
+    .date {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .time {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
 
-    private string GetStuPhotoUrl(int studentId)
-    {
-        int userSchoolId = UserState.SchoolId ?? 0;
-        string schoolContainerName = userSchoolId == 1 ? "data" : $"school-{userSchoolId}";
-        return BlobStorageService.GetStuPhotoUrl(studentId, schoolContainerName);
+    @@media (max-width: 768px) {
+        .welcome-card {
+            padding: 2rem 1.5rem;
+        }
+        
+        .welcome-title {
+            font-size: 1.8rem;
+        }
     }
-   
-    private Timer? timer;
+</style>
 
-    protected override void OnInitialized()
+@code {
+    protected override async Task OnInitializedAsync()
     {
-        timer = new Timer(1000);
-        timer.Elapsed += UpdateTime;
-        timer.AutoReset = true;
-        timer.Enabled = true;
+        // Any initialization logic if needed
+        await base.OnInitializedAsync();
     }
-
-    private void UpdateTime(object? sender, ElapsedEventArgs e)
-    {
-        currentTime = DateTime.Now.ToString("hh:mm:ss tt");
-        InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        timer?.Stop();
-        timer?.Dispose();
-    }
-
 }

@@ -137,31 +137,23 @@
                         Console.WriteLine($"Failed to load facility statuses: {ex.Message}");
                     }
 
-                    // Check TeacherBuddy status
-                    var teacherBuddyEnabled = UserState.FacilityStatuses
-                        .FirstOrDefault(f => f.FacilityName == "TeacherBuddy")?.IsEnabled ?? false;
+                    // Check ManagerBuddy status
+                    var managerBuddyEnabled = UserState.FacilityStatuses
+                        .FirstOrDefault(f => f.FacilityName == "ManagerBuddy")?.IsEnabled ?? false;
 
-                    if (!teacherBuddyEnabled)
+                    if (!managerBuddyEnabled)
                     {
-                        // Show message and exit
-                        //await DialogService.ShowMessageAsync("Your School Not enabled");
-// #if WINDOWS || MACCATALYST
-//                         Application.Current.Quit();
-// #endif
-//                         return;
                         // Navigate to no-access page instead of logging out
                         await OnLoginComplete.InvokeAsync(false);
                         DialogService.Close();
                         NavigationManager.NavigateTo("/no-access");
                         return;
-                    
                     }
                 }
 
                 // Notify parent component and close dialog
                 await OnLoginComplete.InvokeAsync(true);
                 DialogService.Close();
-                //Navigation.NavigateTo("/");
             }
         }
         catch (Exception ex)

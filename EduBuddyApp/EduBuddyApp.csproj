@@ -22,10 +22,10 @@
         <Nullable>enable</Nullable>
 
         <!-- Display name -->
-         <ApplicationTitle>Teacher Buddy</ApplicationTitle>
+         <ApplicationTitle>Manager Buddy</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.EduBuddy.TeacherBuddy</ApplicationId>
+        <ApplicationId>com.EduBuddy.ManagerBuddy</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>4.00</ApplicationDisplayVersion>
