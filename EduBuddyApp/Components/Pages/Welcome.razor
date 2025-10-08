@@ -3,124 +3,364 @@
 @inject DialogService DialogService
 @using EduBuddyApp.Components.Common
 @inject NavigationManager NavigationManager
+
 <style>
     html, body {
         margin: 0;
         padding: 0;
         height: 100%;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    .welcome-container {
+    .manager-dashboard {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        overflow-x: hidden;
+    }
+
+    .header-section {
+        text-align: center;
+        padding: 2rem 1rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+
+    .logo-container {
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        text-align: center;
-        padding: 20px;
-        min-height: 100vh;
-         background-image: url('https://edubuddydata.blob.core.windows.net/project-images/BackgroundForStuBuddy.png');  
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        color: white;
-    }
-
-    .welcome-image {
-        max-width: 90%;
-        height: auto;
-        margin-bottom: 1.2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .welcome-heading {
-        font-size: 1.2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-        background-color: rgba(0, 0, 0, 0.5);
-        padding: 0.6rem 1rem;
-        border-radius: 8px;
-    }
-
-    .welcome-punchline {
-        font-size: 1rem;
         margin-bottom: 1rem;
-        background-color: rgba(255, 255, 255, 0.2);
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        animation: slideIn 2s ease-out forwards;
-        opacity: 0;
-        color: navy; /* Text color */
-        font-weight: bold; /* Bold text */
-        font-family: 'Calistoga', cursive; /* Calistoga font */
     }
 
-
-    .welcome-description {
-        font-size: 0.8rem;
-        background-color: rgba(0, 0, 0, 0.4);
-        padding: 0.8rem 1rem;
-        border-radius: 8px;
-        font-weight: bold;
-        margin-bottom: 1.2rem;
-        max-width: 500px;
+    .logo-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(45deg, #ff6b6b, #feca57);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
 
-    .btn-primary {
+    .brand-text {
+        text-align: left;
+    }
+
+    .brand-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .brand-subtitle {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin: 0;
+        font-weight: 300;
+    }
+
+    .tagline {
+        font-size: 1.1rem;
+        margin: 1rem 0;
+        opacity: 0.95;
+        font-style: italic;
+    }
+
+    .top-cta-section {
+        text-align: center;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .services-grid {
+        padding: 2rem 1rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .service-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+
+    .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .service-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .service-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #fff;
+    }
+
+    .service-description {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+    }
+
+    .service-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .feature-tag {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .cta-section {
+        padding: 2rem 1rem 3rem;
+        text-align: center;
+    }
+
+    .login-btn {
+        background: linear-gradient(45deg, #ff6b6b, #feca57);
+        border: none;
+        color: white;
+        padding: 1rem 3rem;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .login-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+
+    .top-login-btn {
+        background: linear-gradient(45deg, #ff6b6b, #feca57);
+        border: none;
+        color: white;
+        padding: 0.8rem 2.5rem;
+        border-radius: 50px;
         font-size: 1rem;
-        padding: 0.6rem 1.4rem;
-        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 0.5rem;
     }
 
-    @@keyframes slideIn {
-        from {
-            transform: translateY(30px);
-            opacity: 0;
-        }
+    .top-login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+    }
 
+    .powered-by {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: space-around;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: block;
+        color: #feca57;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        margin-top: 0.2rem;
+    }
+
+    /* Animation Classes */
+    .fade-in {
+        animation: fadeInUp 0.8s ease-out forwards;
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    .fade-in-delay-1 { animation-delay: 0.2s; }
+    .fade-in-delay-2 { animation-delay: 0.4s; }
+    .fade-in-delay-3 { animation-delay: 0.6s; }
+
+    @@keyframes fadeInUp {
         to {
-            transform: translateY(0);
             opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive Design */
+    @@media (min-width: 480px) {
+        .services-grid {
+            max-width: 500px;
+        }
+        
+        .service-card {
+            padding: 2rem;
         }
     }
 </style>
 
-<div class="welcome-container">
-    <img src="https://edubuddydata.blob.core.windows.net/project-images/TeacherBuddy.png"
-         alt="Manager Buddy" class="welcome-image" />
-
-    <h1 class="welcome-heading">📲 ManagerBuddy – Powered by EduBuddy</h1>
-
-    <div class="welcome-punchline">
-        Your personal management assistant!
+<div class="manager-dashboard">
+    <!-- Header Section -->
+    <div class="header-section fade-in">
+        <div class="logo-container">
+            <div class="logo-icon">
+                🎯
+            </div>
+            <div class="brand-text">
+                <h1 class="brand-title">ManagerBuddy</h1>
+                <p class="brand-subtitle">Professional Management Suite</p>
+            </div>
+        </div>
+        <p class="tagline">Streamline • Organize • Excel</p>
+        
+        <!-- Top Get Started Button -->
+        <div class="top-cta-section">
+            <button class="top-login-btn" @onclick="OpenLoginPopup">
+                Get Started
+            </button>
+        </div>
     </div>
 
-    <p class="welcome-description">
-        Streamline your management tasks with ease. ManagerBuddy provides you with essential tools to manage your operations efficiently, so you can focus more on strategic decisions and team leadership.
-    </p>
+    <!-- Management Services Grid -->
+    <div class="services-grid">
+        <div class="service-card fade-in fade-in-delay-1">
+            <span class="service-icon">🚌</span>
+            <h3 class="service-title">Transport Management</h3>
+            <p class="service-description">
+                Comprehensive fleet management, route optimization, and real-time vehicle tracking for efficient transportation operations.
+            </p>
+            <div class="service-features">
+                <span class="feature-tag">Route Planning</span>
+                <span class="feature-tag">Driver Management</span>
+                <span class="feature-tag">Live Tracking</span>
+            </div>
+        </div>
 
-    <button class="btn btn-primary" @onclick="OpenLoginPopup">
-        Login
-    </button>
+        <div class="service-card fade-in fade-in-delay-2">
+            <span class="service-icon">👥</span>
+            <h3 class="service-title">HR Management</h3>
+            <p class="service-description">
+                Complete human resource management system with employee records, attendance, payroll, and performance tracking.
+            </p>
+            <div class="service-features">
+                <span class="feature-tag">Employee Records</span>
+                <span class="feature-tag">Attendance</span>
+                <span class="feature-tag">Payroll</span>
+                <span class="feature-tag">Performance</span>
+            </div>
+        </div>
+
+        <div class="service-card fade-in fade-in-delay-3">
+            <span class="service-icon">📚</span>
+            <h3 class="service-title">Library Management</h3>
+            <p class="service-description">
+                Digital library system for cataloging books, managing inventory, tracking loans, and maintaining member records.
+            </p>
+            <div class="service-features">
+                <span class="feature-tag">Book Catalog</span>
+                <span class="feature-tag">Issue/Return</span>
+                <span class="feature-tag">Digital Records</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-row fade-in fade-in-delay-3">
+        <div class="stat-item">
+            <span class="stat-number">250+</span>
+            <span class="stat-label">Schools</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">99.9%</span>
+            <span class="stat-label">Uptime</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">24/7</span>
+            <span class="stat-label">Support</span>
+        </div>
+    </div>
+
+    <!-- Call to Action Section -->
+    <div class="cta-section fade-in fade-in-delay-3">
+        <button class="login-btn" @onclick="OpenLoginPopup">
+            Get Started
+        </button>
+        <div class="powered-by">
+            <strong>Powered by EduBuddy</strong><br>
+            Your Trusted Educational Technology Partner
+        </div>
+    </div>
 </div>
 
-
 @code {
-     private async Task OpenLoginPopup()
+    private async Task OpenLoginPopup()
     {
-        await DialogService.OpenAsync<LoginForm>("Login", new Dictionary<string, object>
+        await DialogService.OpenAsync<LoginForm>("Manager Login", new Dictionary<string, object>
         {
             { "OnLoginComplete", EventCallback.Factory.Create<bool>(this, HandleLoginComplete) }
+        }, new DialogOptions() 
+        { 
+            Width = "90%", 
+            Height = "auto",
+            Resizable = true,
+            Draggable = false,
+            CloseDialogOnOverlayClick = true
         });
     }
 
-     private void HandleLoginComplete(bool success)
+    private void HandleLoginComplete(bool success)
     {
-        // You can handle post-login logic here if needed
         if (success)
         {
-            // User successfully logged in
-            //NavigationManager to @page "/mypage"
             NavigationManager.NavigateTo("/home");
             StateHasChanged();
         }
